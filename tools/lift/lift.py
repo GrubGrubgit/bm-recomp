@@ -6,14 +6,34 @@
 # - jmp LABEL: goto (same function) or tail call (another entry).
 # - branches: goto (same function, incl. self top), call+return (entry).
 # Unknown ops and outside-region targets fail fast.
+import re
 import sys
+HEX = '0123456789ABCDEFabcdef'
+def base_of(t):
+    t = t.strip()
+    if t.startswith('entry_'):
+        t = t[6:]
+    if t.startswith('$'):
+        return '0x' + t[1:]
+    if len(t) == 5 and t[0] == 'L' and all(c in HEX for c in t[1:]):
+        return '0x' + t[1:]
+    if len(t) == 4 and all(c in HEX for c in t):
+        return '0x' + t
+    assert t.isdigit(), 'bad address term: ' + t
+    return str(int(t))
 def addr_of(tok):
     tok = tok.strip()
-    if tok.startswith('$'):
-        return '0x' + tok[1:]
-    if len(tok) == 5 and tok[0] == 'L' and all(c in '0123456789ABCDEFabcdef' for c in tok[1:]):
-        return '0x' + tok[1:]
-    raise AssertionError('bad address operand: ' + tok)
+    parts = re.split('([+-])', tok)
+    if len(parts) == 1:
+        return base_of(tok)
+    out = []
+    for i, q in enumerate(parts):
+        if i % 2 == 1:
+            assert q in ('+', '-'), 'bad op: ' + tok
+            out.append(' ' + q + ' ')
+        else:
+            out.append(base_of(q))
+    return '(' + ''.join(out) + ')'
 def split_mem(arg):
     arg = arg.strip()
     if arg.startswith('('):
@@ -54,9 +74,14 @@ BR = {
     'bcs': '((P & 0x01))',
     'bpl': '(!(P & 0x80))',
     'bmi': '((P & 0x80))',
+    'bvs': '((P & 0x40))',
+    'bvc': '(!(P & 0x40))',
 }
 asm_path, out_path, bank, entry_arg = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+stub_arg = sys.argv[5] if len(sys.argv) > 5 else ''
+stubset = set(stub_arg.split(',')) if stub_arg else set()
 entries = entry_arg.split(',')
+
 lines = open(asm_path).read().split(chr(10))
 src_order = []
 all_labels = set()
@@ -89,6 +114,8 @@ out = []
 out.append('#include "runtime.h"')
 for e in entries:
     out.append('static void %s_%s(void);' % (bank, e))
+for e in sorted(stubset - set(entries)):
+    out.append('static void %s_%s(void);' % (bank, e))
 cur = None
 found = set()
 last_op = None
@@ -109,7 +136,7 @@ for raw in lines:
                     out.append('return;')
                 out.append('}')
             last_op = None
-            out.append('static void %s_%s(void) {' % (bank, name))
+            out.append('static void __attribute__((used)) %s_%s(void) {' % (bank, name))
             if name in self_tgt:
                 out.append('b7_%s_top:;' % name)
             cur = name
@@ -179,11 +206,15 @@ for raw in lines:
     elif op == 'sta':
         out.append(wr_of(arg, 'A'))
     elif op == 'and':
-        out.append('A = (uint8_t)(A & %s); setZN(A);' % imm_of(arg))
+        out.append('{ uint8_t _m = %s; A = (uint8_t)(A & _m); setZN(A); }' % (imm_of(arg) if arg.startswith('#') else rd_of(arg)))
     elif op == 'eor':
-        out.append('A = (uint8_t)(A ^ %s); setZN(A);' % imm_of(arg))
+        out.append('{ uint8_t _m = %s; A = (uint8_t)(A ^ _m); setZN(A); }' % (imm_of(arg) if arg.startswith('#') else rd_of(arg)))
     elif op == 'ora':
-        out.append('A = (uint8_t)(A | %s); setZN(A);' % imm_of(arg))
+        out.append('{ uint8_t _m = %s; A = (uint8_t)(A | _m); setZN(A); }' % (imm_of(arg) if arg.startswith('#') else rd_of(arg)))
+    elif op == 'rol' and arg == 'a':
+        out.append('{ uint8_t _c = (uint8_t)(P & 1); P = (uint8_t)((P & 0xFE) | (A >> 7)); A = (uint8_t)((A << 1) | _c); setZN(A); }')
+    elif op == 'ror' and arg == 'a':
+        out.append('{ uint8_t _c = (uint8_t)((P & 1) << 7); P = (uint8_t)((P & 0xFE) | (A & 1)); A = (uint8_t)(_c | (A >> 1)); setZN(A); }')
     elif op == 'rol':
         out.append('{ uint8_t _v = %s; uint8_t _c = (uint8_t)(P & 1); P = (uint8_t)((P & 0xFE) | (_v >> 7)); _v = (uint8_t)((_v << 1) | _c); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
     elif op == 'ror':
@@ -216,7 +247,7 @@ for raw in lines:
         cond = BR[op]
         if arg == cur:
             out.append('if (%s) goto b7_%s_top;' % (cond, cur))
-        elif arg in entries:
+        elif arg in entries or arg in stubset:
             out.append('if (%s) { b7_%s(); return; }' % (cond, arg))
         else:
             assert arg in all_labels, 'branch target outside lifted regions: ' + arg
@@ -228,7 +259,7 @@ for raw in lines:
         assert arg and arg[0] not in ('$', '#', '('), 'jmp needs a plain label target: ' + arg
         if arg == cur:
             out.append('goto b7_%s_top;' % cur)
-        elif arg in entries:
+        elif arg in entries or arg in stubset:
             out.append('b7_%s(); return;' % arg)
         else:
             assert arg in all_labels, 'jmp target outside lifted regions: ' + arg
@@ -246,7 +277,9 @@ if cur is not None:
         out.append('b7_%s();' % nx)
         out.append('return;')
     out.append('}')
-missing = [e for e in entries if e not in found]
+for st in sorted(stubset):
+    out.append('static void %s_%s(void) { __builtin_trap(); }' % (bank, st))
+missing = [e for e in entries if e not in found and e not in stubset]
 assert not missing, 'entry labels not found: ' + ','.join(missing)
 open(out_path, 'w').write(chr(10).join(out) + chr(10))
 print('lifted ' + entry_arg + ' -> ' + out_path)

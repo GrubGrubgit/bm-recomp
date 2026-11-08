@@ -120,3 +120,21 @@ TRACE-SWITCH (C9D3 JMP ($007A): targets known from edges), SYSTEM
 (EB96/97 RTI, EBF4 BRK: stubs), TRIVIAL (F23C CLD: added with sei/cli,
 pattern-shared, fixtures pending). Whole-bank lift = all Code ranges
 as entries + bank-switch calls + RAM-vector switch + stubs.
+
+## Whole-bank bank7 milestone (DONE 2026-11-08)
+gen_bank.py slices prg7_auto.s by label address into Code-range groups
+(drops excluded islands, unlabeled .byte directives, := aliases), lifts
+one TU. Entries: all kept labels (coarse but correct; minimal entries
+later). Missing refs become LOUD trap stubs (10: cross-bank DEC2 set,
+LC3AA/LC9AE/LCE02/LCEB1/LEB91). Excluded: FDA5-FDAF + FDF4 + FB10-FB12
+(data), C9D2-C9D4 (RAM-vector switch, next), C3CF-C3D1 (RAM call stub,
+next), EB96-97/EBF4 (system stubs, next), DEC2-E01A (bank5 calls, next).
+New ops en route: bvs/bvc, rol-a/ror-a, and/ora/eor mem forms, +N/-N
+address exprs (MMC LFFFA+5 writes, dropped by WR for now), entry_-form
+and bare-hex operands. Recipe: gen_bank.py prg7_auto.s info 7 snip out
+with the 8 excludes; gcc -O2 -Wall -Wextra -Wno-unused-function.
+Result: 910 functions, 9673 lines, RC=0 zero warnings, 517KB object
+(used-attr forced emission: this gcc drops unreferenced statics).
+28/28 fixture tests still pass after every lift.py change.
+Next: bank-switch calls (lift DEC2/bank5), C9D3 vector switch with
+trace targets, stub bodies, minimal entries, parity harness, banks 6/4.
