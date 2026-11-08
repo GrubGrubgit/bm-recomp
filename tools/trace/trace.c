@@ -121,6 +121,9 @@ static void mem_wr(uint16_t a, uint8_t v) {
 }
 
 static inline uint8_t fetch(void) { return mem_rd(PC++); }
+/* Edge src is always the true insn address. For JSR/JMP/JMP-ind the
+   opcode fetch already advanced PC, so those cases use PC - 1.
+   Implied-op edges (RTS/RTI/BRK/NMI) use PC directly. */
 static inline void edge(int ty, uint16_t src, uint16_t dst) {
   if (!edge_out) return;
   uint16_t fr = (uint16_t)(cycles / CYCLES_PER_FRAME);
@@ -300,9 +303,9 @@ static int exec_one(void) {
     case 0xB0: BRA((P & 0x01) != 0); break;
     case 0xD0: BRA((P & 0x02) == 0); break;
     case 0xF0: BRA((P & 0x02) != 0); break;
-    case 0x4C: { uint16_t ipc = PC; t = fetch(); t |= (uint16_t)fetch() << 8; PC = t; edge(2, ipc, t); cycles += 3; break; }
-    case 0x6C: { uint16_t ipc = PC; t = fetch(); t |= (uint16_t)fetch() << 8; a = mem_rd(t) | ((uint16_t)mem_rd((t & 0xFF00) | ((t + 1) & 0xFF)) << 8); PC = a; edge(3, ipc, a); cycles += 5; break; }
-    case 0x20: { uint16_t ipc = PC; a = fetch(); a |= (uint16_t)fetch() << 8; t = PC - 1; push((t >> 8) & 0xFF); push(t & 0xFF); if (esp < 512) { eshadow[esp] = t; eshadow_plus[esp] = 1; esp++; } PC = a; edge(1, ipc, a); cycles += 6; break; }
+    case 0x4C: { uint16_t ipc = PC - 1; t = fetch(); t |= (uint16_t)fetch() << 8; PC = t; edge(2, ipc, t); cycles += 3; break; }
+    case 0x6C: { uint16_t ipc = PC - 1; t = fetch(); t |= (uint16_t)fetch() << 8; a = mem_rd(t) | ((uint16_t)mem_rd((t & 0xFF00) | ((t + 1) & 0xFF)) << 8); PC = a; edge(3, ipc, a); cycles += 5; break; }
+    case 0x20: { uint16_t ipc = PC - 1; a = fetch(); a |= (uint16_t)fetch() << 8; t = PC - 1; push((t >> 8) & 0xFF); push(t & 0xFF); if (esp < 512) { eshadow[esp] = t; eshadow_plus[esp] = 1; esp++; } PC = a; edge(1, ipc, a); cycles += 6; break; }
     case 0x60: { uint16_t ipc = PC; t = pull(); t |= (uint16_t)pull() << 8; PC = t + 1; if (esp > 0 && (uint16_t)(eshadow[esp-1] + eshadow_plus[esp-1]) == PC) esp--; else edge(4, ipc, PC); cycles += 6; break; }
     case 0x40: { uint16_t ipc = PC; P = pull() | 0x20; t = pull(); t |= (uint16_t)pull() << 8; PC = t; if (esp > 0 && (uint16_t)(eshadow[esp-1] + eshadow_plus[esp-1]) == PC) esp--; else edge(5, ipc, PC); cycles += 6; break; }
     case 0x00: { uint16_t ipc = PC; PC++; push((PC >> 8) & 0xFF); push(PC & 0xFF); push(P | 0x30); if (esp < 512) { eshadow[esp] = PC; eshadow_plus[esp] = 0; esp++; } P |= 0x04; PC = mem_rd(0xFFFE) | ((uint16_t)mem_rd(0xFFFF) << 8); edge(6, ipc, PC); cycles += 7; return -2; }

@@ -22,3 +22,16 @@ Consumer tools/tracefeed.py maps trace records to new disasm entries
 
 Success metric: static coverage percent per bank + count of resolved jump
 table slots. Fallback if own core stalls: port a stripped QuickNES core.
+## Edge-record semantics (2026-11-07 fix)
+Edge src is the TRUE insn address for all types. (Was: JSR/JMP/JMP-ind
+logged insn+1 because the opcode fetch had already advanced PC; fixed with
+PC - 1 in those three cases. Implied-op edges were always correct.) All
+logs generated before the fix are stale for JMP-ind vector resolution only;
+they were regenerated. Lesson: any future edge consumer must treat src as
+the opcode address (vector pointer operand lives at src+1/src+2).
+## First real indirect dispatch found (edgeplay, 36000f)
+Fixed-bank code at C9D2 runs JMP (007A): pointer in ROM, target is a
+zero-page RAM vector. With bank6 mapped it dispatches to 6 bank6 routines
+(8124/8127/815C/815F/92DB/92DE, first seen ~frame 1500). This is the
+pattern the tracer was built for: static analysis can never resolve a RAM
+vector, only runtime edges can. tracefeed reports such sites as RAM@addr.
