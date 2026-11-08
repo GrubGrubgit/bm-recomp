@@ -431,3 +431,92 @@ a directed boss/deep-dungeon tape with RAM-position feedback, then a
 re-census. Stub verdict: no bodies (all traps silent across both esc
 sweeps: L0000 init trampoline and LEB91 NMI are harness-unreached by
 design, b6_L9B98/L9BDB never execute, vec default is by design).
+
+G4 game-loop pilot (title, no-input): frame-locked parity via cooperative hook.
+
+rti support: lift.py emits RTI as bare return and accepts it in
+fall-through tail-call tuples. Fixture fixtures/rti_snip.s covers the real
+NMI restore tail LEB91 (pla/tay/pla/tax/pla/rti); make test locks A/P/S.
+The NMI path is therefore liftable: the EB96-EB97 exclude was removed from
+the regen, so the LEB91 restore tail and entry_EB97 are real lifted code
+(bank7 972->974 kept entries; NMI vector EB7E now has a complete body).
+
+PPU model in runtime.h (G4): vram 2KB + palette with tracer-identical
+mirror mapping, ppu_addr + latch, ppu_buf with the same read side effects,
+OAM + $4014 DMA, scx/scy + latch, reg2000, chr0/chr1, mmc_ctrl. $2002 bit7
+toggles on a read counter (every 3rd read returns 0x80); every $2002 read
+resets both latches. Census: all 13 in-ROM $2002 reads discard the value
+(reset bpl-spins and setup reads; no sprite0 polling anywhere, no $4015
+reads). $2007 reads are absent from the reset path. APU $4010/$4015/$4017
+writes are dropped in both models.
+
+Dispatch seeding (attempted first, then superseded): walk_dispatch.py
+collects jsr fall-through RET addrs over reset, forced-NMI and snapshot
+walks (63 RET, 0 ESC on the title path; minus 4 labeled and the 0009
+wilderness artifact = 58 NEEDs: 54 bank7 + 4 bank5) plus 23 ground-truth
+fall-throughs from the trace0 execution stream (22 bank7 + 80A9 bank5).
+Bank7 seeds ride disasm/tools/rebuild.sh fixed entry list, bank5 seeds ride
+work/banks/prg5.bin.tentries; ADDRMAP/PROV grew 2560->2620->2643 by pure
+addition, ROM-PARITY-OK after every rebuild. gen_dispatch.py builds a
+2643-case pop-dispatch table. This pop-and-continue design FAILED at the
+first park release (STUCK pop-dispatch 7 C978): lifted jsr does S-=2/+2
+with NO stk[] writes, so the popped resume bytes are stale pha/NMI residue,
+not the E936-caller return. Hw-accurate stk pushes at every jsr were
+considered and rejected (lift.py tracks no per-jsr address; the C stack
+cannot resume the abandoned chain anyway). The dispatch table and seeds
+stay (harmless, and the 81 sites are real code), but the loop driver does
+not use them.
+
+Cooperative design (what works): a work-local hook (hook_g4.py) patches a
+fresh combined_g4.c copy (canonical TUs untouched): G4_dump() as the first
+statement of b7_entry_E936 (exactly the tracer dump point: pre-exec, so A,
+P, $12 and PC all agree with the tracer record with zero masking), then
+the two lifted stores (A=0x80, $12=$80), then G4_advance() (pad schedule,
+nested-NMI guard, HANG check on reg2000.7, park-limit exit), then the
+normal LE93A spin, which exits immediately because the just-fired NMI took
+the palette branch and released $12. The NMI (b7_entry_EB7E with P
+save/restore, S-drift check) runs as a nested C call each boundary, exactly
+matching hardware on the title path (measured: 1 park/frame, 1 NMI/park,
+every NMI parked with $12=$80, zero mid-compute NMIs). No alarm, no
+longjmp, no dispatch, no wall-clock dependence: fully deterministic.
+Nested-guard counter stays 0 (the NMI subtree never re-enters E936).
+
+Tracer bug found by this unit: do_bit used mask 0x3A, clobbering I and C
+(real BIT preserves I/D/C). It showed as a park1 P divergence (tracer
+0x20 vs lifted 0xA4, I-bit only) after the first NMI. Fixed to 0x3D in
+recomp/tools/trace/trace.c (matches the lifted emitter); behavior-neutral
+(the NMI gate never consults I), dump-P only. All park references were
+regenerated after the fix.
+
+References (work-local, regenerable): trace_park.c = E936-entry park
+dumps; trace_park_nonmi.c = same with NMIs suppressed until the first park
+(isolates main-thread parity from NMI timing). sweep_g4c.py compares with
+ONLY the $0100-$01FF stack page masked (C stack cannot mirror 6502
+return-address pushes; S is still compared exact); sweep_g4e.py additionally
+selects PC==E936 records so frame-boundary -r snaps cannot misalign the
+tail.
+
+Results (no-input title): 28/28 parks EXACT-mod-stack vs the no-pre-park
+reference (frames 3..30; A/X/Y/S/P, all RAM, all VRAM, PPU regs, PC, bank,
+frame all exact; stackmasked 15 at park0 growing to 28 as both stacks fill
+with push residue). Vs the standard reference the ONLY differences are the
+single pre-park NMI's effects, fully accounted: $EA-$ED=FF (NMI sound tick
+via BFF1/8077), $10 counter +1 lagging by exactly 1 every park (EC51 path),
+nothing else. Park0-vs-driver comparison after the dump-point-exact hook
+needs no A/$12/P masking at all.
+
+Gameplay probe (tape3, Start at 500): title-phase parity holds through
+~park 402 (HW frame ~408; 2 frames of nominal-vs-HW slip accumulate from
+NMI-disabled loader frames, visible only in the frame-lo footer byte).
+The driver stops at nominal frame ~500 (Start) on a G2 unwind in the
+game-start path (UNWIND-ESCAPE LE3DC->E4AB, S=FD vs F7). Gameplay
+continuation therefore needs G2 target-resume in the loop driver (next
+unit); mid-compute NMIs (seen in longer dungeon tapes) additionally need
+cycle timing the lifted code does not have yet. Neither is chased here.
+
+Regen recipe unchanged (canonical TUs carry no hook; esc sweeps re-verified
+on the canonical build: zero-state 65/65 PASS, snapshot 716/716 PASS).
+The committed trace binary is git-ignored and rebuilt by its Makefile.
+snapshots in snaps.bin predate the do_bit fix (their P bytes have I=0);
+harmless (I is behavior-neutral in both models) but regenerate them next
+time snapshots are rebuilt.

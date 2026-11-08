@@ -244,7 +244,7 @@ for raw in lines:
         name = name.strip()
         if name in entries:
             if cur is not None:
-                if last_op not in ('rts', 'jmp'):
+                if last_op not in ('rts', 'rti', 'jmp'):
                     assert cur != src_order[-1], 'unterminated entry: ' + cur
                     nx = src_order[src_order.index(cur) + 1]
                     out.append('%s_%s();' % (bank, nx))
@@ -411,12 +411,14 @@ for raw in lines:
             out.append('goto %s_%s;' % (bank, arg))
     elif op == 'rts':
         out.append('return;')
+    elif op == 'rti':
+        out.append('return;')
     elif op == 'nop':
         out.append(';')
     else:
         raise AssertionError('unsupported op: ' + s)
 if cur is not None:
-    if last_op not in ('rts', 'jmp'):
+    if last_op not in ('rts', 'rti', 'jmp'):
         assert cur != src_order[-1], 'unterminated final entry: ' + cur
         nx = src_order[src_order.index(cur) + 1]
         out.append('%s_%s();' % (bank, nx))

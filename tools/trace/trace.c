@@ -217,7 +217,7 @@ static inline void do_cmp(uint8_t reg, uint8_t v) {
   P = (P & 0x7C) | ((r == 0) << 1) | (r & 0x80) | ((reg >= v) ? 1 : 0);
 }
 static inline void do_bit(uint8_t v) {
-  P = (P & 0x3A) | (v & 0xC0) | (((A & v) == 0) << 1);
+  P = (P & 0x3D) | (v & 0xC0) | (((A & v) == 0) << 1);
 }
 #define BRA(cond) do { int8_t o = (int8_t)fetch(); cycles += 2;   if (cond) { uint16_t np = (uint16_t)(PC + o);   cycles += 1 + ((((PC ^ np) & 0xFF00) != 0) ? 1 : 0); PC = np; } } while (0)
 #define LDA_RD(mode_call) do { A = (mode_call); setZN(A); } while (0)

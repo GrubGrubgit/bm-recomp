@@ -9,6 +9,7 @@
 #include "build/lifted_b6.c"
 #include "build/lifted_b5.c"
 #include "build/lifted_b4.c"
+#include "build/lifted_rti.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
@@ -170,6 +171,11 @@ int main(void) {
     A = 0x88; X = 0; Y = 0; S = 0xFD; P = 0x24;
     b4_LB1F9();
     check(A == 0xF8 && P == 0xB4 && S == 0xFD && ram[0x48] == 0x80 && ram[0x49] == 0xF8, "B1F9 php/plp ora path");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFA; P = 0x24;
+    ram[0x1FB] = 0xCC; ram[0x1FC] = 0xBB; ram[0x1FD] = 0xAA;
+    b7_entry_RT1();
+    check(A == 0xAA && X == 0xBB && Y == 0xCC && S == 0xFD && P == 0xA4, "RT1 NMI-restore tail, rti returns");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;
