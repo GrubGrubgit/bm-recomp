@@ -177,3 +177,18 @@ LBFE5/8/F1 address aliases); hoisted alias-skip runs before islab().
 Fixtures: xbank_snip.s (real entry_DEC2 + XBPB probe), xbank_mini.txt; test
 gains call_traps helper + xbank trap + 3 MMC checks (select/chr-ignored/reset).
 make test: 28/28 + 8/8 PASS. Remaining excludes: data x3, RAM-call, system.
+
+## Stub-bodies verdict + RAM call live (DONE 2026-11-08)
+RTI sites (LEB91 NMI tail, entry_EB97) are dead interrupt vectors: kept NMI
+prologue refs jmp LEB91, but nothing calls the handler without hardware NMI,
+so the trap stub is correct and loud. LEBF4 brk is a data-table head
+(palette, read by lda LEBF4,y via RD) -- stays excluded as data.
+LCE02/LCEB1 stubs are data bytes at branch targets: trap-if-reached is honest;
+the parity harness will say if the game ever executes them.
+The one live stub was LC3AA (game init, beq-referenced): jsr L0000 (L0000 :=
+$0000 alias) needs no new lift code -- jsr-to-stub already traps loudly.
+Dropped C3CF-C3D1; TU regen with 5 excludes: 950 fns, 10384 lines, 7 stubs
+(L0000 replaces LC3AA), RC=0. Fixture ramcall_snip.s is the real LC3AA body;
+test: codegen has b7_L0000() + trap def, forked call traps. 28/28 + 9/9 PASS.
+Bank7 is now complete: everything lifted except 3 data islands, 2 dead
+vectors + 1 data table (excluded), and 7 documented loud traps.

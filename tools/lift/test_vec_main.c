@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include "build/lifted_vec.c"
 #include "build/lifted_xbank.c"
+#include "build/lifted_ramcall.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     fputs(ok ? "PASS " : "FAIL ", stdout);
@@ -51,6 +52,7 @@ int main(void) {
     check(swbank == prg[5], "mmc chr-reg writes leave prg bank alone");
     WR(0x8000, 0x80);
     check(swbank == prg[0] && mmc_count == 0, "mmc reset restores bank 0");
+    check(call_traps(b7_LC3AA), "ramcall LC3AA traps at first stub");
     if (failures) {
         char b[64];
         sprintf(b, "FAILURES=%d", failures);
