@@ -558,8 +558,8 @@ int main(int argc, char **argv) {
       if (ram_out && ram_every > 0) { int frnow2 = (int)(cycles / CYCLES_PER_FRAME); if (frnow2 % ram_every == 0 && frnow2 != last_snap) { last_snap = frnow2; { fwrite(ram, 1, 0x800, ram_out); fwrite(vram, 1, 0x800, ram_out);
       { uint8_t ftr[64]; int fi; for (fi = 0; fi < 32; fi++) ftr[fi] = pal[fi];
         ftr[32] = scx; ftr[33] = scy; ftr[34] = reg2000;
-        ftr[35] = chr0; ftr[36] = chr1; ftr[37] = mmc_ctrl; for (fi = 35; fi < 64; fi++) ftr[fi] = 0;
-        fwrite(ftr, 1, 64, ram_out); } } } }
+        ftr[35] = chr0; ftr[36] = chr1; ftr[37] = mmc_ctrl; for (fi = 38; fi < 64; fi++) ftr[fi] = 0;
+        ftr[38] = (uint8_t)(PC & 0xFF); ftr[39] = (uint8_t)(PC >> 8); ftr[40] = A; ftr[41] = X; ftr[42] = Y; ftr[43] = S; ftr[44] = P; ftr[45] = (uint8_t)prg_bank; ftr[46] = (uint8_t)(frnow2 & 0xFF); ftr[47] = (uint8_t)((frnow2 >> 8) & 0xFF); fwrite(ftr, 1, 64, ram_out); } } } }
     }
   }
   fclose(out);

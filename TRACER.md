@@ -65,3 +65,5 @@ they are left alone. Verified: -w F7 plus tape now loads the tape and
 fires (24144 hits on sL run, ROL F7 at E929 writes 02 under Left).
 Lesson: optional numeric args must validate before consuming; always
 check for the tape loaded line on stderr when a watch run is silent.
+## Snapshot footer v2 (2026-11-08, fixed)
+The 64B snapshot footer is now: 0..31 pal, 32 scx, 33 scy, 34 reg2000, 35 chr0, 36 chr1, 37 mmc_ctrl, 38 PC lo, 39 PC hi, 40 A, 41 X, 42 Y, 43 S, 44 P, 45 prg_bank, 46 frame lo, 47 frame hi, 48..63 zero. Earlier code wiped from index 35, which zeroed chr0/chr1/mmc_ctrl on every snapshot; the wipe now starts at 38. snap2png.py reads only 35..37 and is unaffected; the parity harness (oracle_snap.py, sweep_snap.py) reads 37..47.
