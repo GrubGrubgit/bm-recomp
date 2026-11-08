@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <string.h>
 #include "build/lifted_input.c"
 #include "build/lifted_misc.c"
 #include "build/lifted_jsr.c"
+#include "build/lifted_trans.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
@@ -54,6 +56,30 @@ int main(void) {
     ram[0x7A] = 0x50; ram[0x7B] = 0x02; ram[0x255] = 0xAB;
     b7_entry_E974();
     check(A == 0x00 && P == 0x27 && Y == 6 && S == 0xFD && ram[0] == 0xAB && ram[0x7B] == 0x02, "E974 jsr-loop counts 3 to 0");
+    {
+        char p[300];
+        for (int i = 0; i < 8; i++) {
+            snprintf(p, sizeof p, "/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/work/banks/prg%d.bin", i);
+            FILE *f = fopen(p, "rb");
+            if (!f || fread(prg[i], 1, 16384, f) != 16384) { printf("FAIL rom load %d\n", i); return 1; }
+            fclose(f);
+        }
+        swbank = prg[6];
+    }
+    check(prg[7][0xA39] == 0x59, "rom table sane");
+    memset(ram, 0, sizeof ram);
+    memset(stk, 0, sizeof stk);
+    A = 0; X = 0; Y = 0x10; S = 0xFD; P = 0x24;
+    ram[0] = 0x50; ram[1] = 0x02; ram[2] = 0x60; ram[3] = 0x02; ram[4] = 0x70; ram[5] = 0x02;
+    ram[0x261] = 0xC3; ram[0x271] = 0xD4; ram[0x281] = 0xE5;
+    b7_LC7C7();
+    check(A == 0xE5 && Y == 0x11 && P == 0xA4 && ram[0x14] == 0xC3 && ram[0x49] == 0xD4 && ram[0x4B] == 0xE5, "LC7C7 tya/eor/tay triple-indirect");
+    memset(ram, 0, sizeof ram);
+    memset(stk, 0, sizeof stk);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x14] = 0x07;
+    b7_entry_CA14();
+    check(A == 0x80 && X == 0x0E && P == 0xA4 && ram[0x49] == 0x59 && ram[0x4B] == 0x15 && ram[0x48] == 0x80 && ram[0x4A] == 0x80, "CA14 asl/tax rom-table pair");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;

@@ -7,6 +7,8 @@
 #include <string.h>
 uint8_t ram[0x800];
 uint8_t stk[0x100];
+uint8_t prg[8][0x4000];
+uint8_t *swbank = prg[0];
 uint8_t A, X, Y, S, P;
 uint8_t pad_bits;
 int pad_pos1, pad_pos2, strobe;
@@ -14,6 +16,8 @@ static inline void setZN(uint8_t v) {
     P = (uint8_t)((P & 0x7D) | (v == 0 ? 0x02 : 0) | (v & 0x80));
 }
 static uint8_t RD(uint16_t a) {
+    if (a >= 0xC000) return prg[7][a - 0xC000];
+    if (a >= 0x8000) return swbank[a - 0x8000];
     if (a < 0x2000) return ram[a & 0x7FF];
     if (a == 0x4016) {
         if (pad_pos1 < 8) return (uint8_t)((pad_bits >> (pad_pos1++)) & 1);

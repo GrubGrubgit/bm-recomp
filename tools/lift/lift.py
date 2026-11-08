@@ -90,6 +90,20 @@ for raw in lines:
         out.append('X = (uint8_t)(X - 1); setZN(X);')
     elif op == 'iny':
         out.append('Y = (uint8_t)(Y + 1); setZN(Y);')
+    elif op == 'dey':
+        out.append('Y = (uint8_t)(Y - 1); setZN(Y);')
+    elif op == 'tax':
+        out.append('X = A; setZN(X);')
+    elif op == 'txa':
+        out.append('A = X; setZN(A);')
+    elif op == 'tay':
+        out.append('Y = A; setZN(Y);')
+    elif op == 'tya':
+        out.append('A = Y; setZN(A);')
+    elif op == 'tsx':
+        out.append('X = S; setZN(X);')
+    elif op == 'txs':
+        out.append('S = X;')
     elif op == 'pha':
         out.append('stk[S] = A; S = (uint8_t)(S - 1);')
     elif op == 'pla':
@@ -102,14 +116,22 @@ for raw in lines:
         out.append(wr_of(arg, 'A'))
     elif op == 'and':
         out.append('A = (uint8_t)(A & %s); setZN(A);' % imm_of(arg))
+    elif op == 'eor':
+        out.append('A = (uint8_t)(A ^ %s); setZN(A);' % imm_of(arg))
     elif op == 'ora':
         out.append('A = (uint8_t)(A | %s); setZN(A);' % imm_of(arg))
     elif op == 'cmp' and arg.startswith('#'):
         out.append('{ uint8_t _r = (uint8_t)(A - %s); P = (uint8_t)((P & 0x7C) | (A >= %s ? 1 : 0) | (_r == 0 ? 2 : 0) | (_r & 0x80)); }' % (imm_of(arg), imm_of(arg)))
     elif op == 'rol':
         out.append('{ uint8_t _v = %s; uint8_t _c = (uint8_t)(P & 1); P = (uint8_t)((P & 0xFE) | (_v >> 7)); _v = (uint8_t)((_v << 1) | _c); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
+    elif op == 'dec':
+        out.append('{ uint8_t _v = (uint8_t)(%s - 1); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
     elif op == 'inc':
         out.append('{ uint8_t _v = (uint8_t)(%s + 1); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
+    elif op == 'asl' and arg == 'a':
+        out.append('P = (uint8_t)((P & 0x7C) | ((A & 0x80) ? 1 : 0)); A = (uint8_t)(A << 1); setZN(A);')
+    elif op == 'lsr' and arg == 'a':
+        out.append('P = (uint8_t)((P & 0x7C) | (A & 1)); A = (uint8_t)(A >> 1); setZN(A);')
     elif op == 'bne':
         out.append('if (!(P & 0x02)) goto %s;' % arg)
     elif op == 'beq':

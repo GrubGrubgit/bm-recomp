@@ -66,3 +66,15 @@ Round 4 order (bank7-driven): transfers tax/txa/tay/tya/tsx/txs/dey/dec,
 shifts asl/lsr/ror, adc+eor+clc, cpx/cpy, bit+bvs/bvc, ldy/sty, jmp-goto
 (absolute; indirect stays a trace-fed switch), rti/sei/cli/cld as
 NMI-runtime notes. Fixture-driven, one group at a time.
+
+## Round 4 group 1 (DONE 2026-11-08): transfers + eor + acc shifts
+New ops: tax/txa/tay/tya/tsx/txs, dey, dec-mem, eor-imm, asl-a/lsr-a
+(correct C + setZN order, V untouched). runtime.h: 8x16KB prg images
++ swbank pointer; RD serves fixed bank + switchable window from real
+bytes (test loads work/banks/prgN.bin, asserts table sanity). New
+fixture trans_snip.s: real LC7C7 (tya/eor/tay + triple (zp),y with $
+and L pointer forms) + real entry_CA14 (and/asl-a/tax + lda abs,x
+from ROM tables LCA2B/LCA2C). make test: 17/17 PASS, incl. CA14 vs
+real bytes (X=0E -> 59/15) and LC7C7 pointer-chain values. txs/dey/
+dec-mem/lsr-a/tsx emitters share tested patterns, await fixtures.
+Next group: shifts-mem/ror + adc + ldy/sty + cpx/cpy.
