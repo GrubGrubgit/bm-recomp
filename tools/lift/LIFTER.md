@@ -159,3 +159,21 @@ plus 8127/8AF1 cross-bank (trap). make test: 28/28 + 4/4 vec PASS
 (dispatch executes probe; unknown/default + listed cross-bank trap in
 forked children; no-spec lift fails fast). Remaining excludes: data x3,
 RAM-call, system, DEC2 cross-bank (bank-switch calls next).
+
+## Cross-bank calls + MMC runtime (DONE 2026-11-08)
+lift.py takes tagged spec args: VEC:path (vector switch, bare path still vec)
+and XBANK:path (lines LABEL BANK). jsr/jmp-plain to an xbank label emits
+bN_label() with decls + trap stubs (skipped from the b7 stub loops); same-bank
+xbank targets reuse real fns via the _defined guard.
+runtime.h WR now emulates MMC1 serial writes (shift/count/commit, reg3 selects
+swbank, bit7 resets to prg[0]); CHR regs ignored and PRG-mode bits unmodeled,
+same simplification as the tracer. Writes to ROM vectors (LFFFA+5) clock the
+shifter exactly like hardware -- no special case.
+Real spec tools/lift/xbank_b5.txt (LBFE5/BFE8/BFF1 -> bank5). Bank7 TU regen
+with 6 excludes (DEC2-E01A kept): 949 fns, 10364 lines, 7 stubs (3 xbank + 4
+local), RC=0 zero warnings. DEC2 lifts to DF05(); b5_LBFE5(); DF0A().
+gen_bank.py no longer treats col-0 := aliases as groups (LDFFF := *+1 and the
+LBFE5/8/F1 address aliases); hoisted alias-skip runs before islab().
+Fixtures: xbank_snip.s (real entry_DEC2 + XBPB probe), xbank_mini.txt; test
+gains call_traps helper + xbank trap + 3 MMC checks (select/chr-ignored/reset).
+make test: 28/28 + 8/8 PASS. Remaining excludes: data x3, RAM-call, system.

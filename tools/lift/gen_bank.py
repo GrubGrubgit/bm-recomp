@@ -8,9 +8,12 @@ s_path, info_path, banknum, snip_path, out_c = sys.argv[1:6]
 banknum = int(banknum)
 excl = []
 vec_paths = []
+xbank_paths = []
 for e in sys.argv[6:]:
     if e.startswith('VEC:'):
         vec_paths.append(e[4:])
+    elif e.startswith('XBANK:'):
+        xbank_paths.append(e[6:])
     else:
         a, b = e.split('-')
         excl.append((int(a, 16), int(b, 16)))
@@ -36,15 +39,15 @@ raw = open(s_path).read().splitlines()
 groups = []
 cur = None
 for ln in raw:
+    if ':=' in ln.split(';', 1)[0]:
+        print('alias skipped: ' + ln.strip()[:40])
+        continue
     if islab(ln):
         nm = ln.strip().split(':', 1)[0].strip()
         cur = [nm, labaddr(nm), [ln]]
         groups.append(cur)
     elif cur is not None and ln.strip() and not ln.strip().startswith(';'):
         st = ln.strip()
-        if ':=' in st:
-            print('alias skipped: ' + st[:40])
-            continue
         if st.startswith('.'):
             print('directive dropped in %s: %s' % (cur[0], st[:40]))
             continue
@@ -86,11 +89,13 @@ stubs = sorted(t for t in tgt if t not in keptnames)
 print('stubs:', len(stubs), stubs[:12])
 print('entries:', len(entries))
 print('vec:', vec_paths)
+print('xbank:', xbank_paths)
 out = []
 for nm, ad, lns in kept:
     out.extend(lns)
 open(snip_path, 'w').write(chr(10).join(out) + chr(10))
 el = ','.join(sorted(entries))
-r = subprocess.run(['python3', '/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/recomp/tools/lift/lift.py', snip_path, out_c, 'b%d' % banknum, el, ','.join(stubs)] + vec_paths, capture_output=True, text=True)
+lift_specs = ['VEC:' + p for p in vec_paths] + ['XBANK:' + p for p in xbank_paths]
+r = subprocess.run(['python3', '/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/recomp/tools/lift/lift.py', snip_path, out_c, 'b%d' % banknum, el, ','.join(stubs)] + lift_specs, capture_output=True, text=True)
 print('ELN:', len(el.split(','))); print(r.stdout[-500:]); print(r.stderr[-2000:])
 sys.exit(r.returncode)

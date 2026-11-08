@@ -1,0 +1,3 @@
+# mini xbank spec: LABEL BANK
+LBFE5 5
+LBFE8 5

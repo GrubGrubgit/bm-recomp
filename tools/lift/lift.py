@@ -81,7 +81,14 @@ asm_path, out_path, bank, entry_arg = sys.argv[1], sys.argv[2], sys.argv[3], sys
 stub_arg = sys.argv[5] if len(sys.argv) > 5 else ''
 stubset = set(stub_arg.split(',')) if stub_arg else set()
 entries = entry_arg.split(',')
-vec_arg = sys.argv[6] if len(sys.argv) > 6 else ''
+vec_paths_in = []
+xbank_paths_in = []
+for _a in sys.argv[6:]:
+    if _a.startswith('VEC:'): vec_paths_in.append(_a[4:])
+    elif _a.startswith('XBANK:'): xbank_paths_in.append(_a[6:])
+    elif _a: vec_paths_in.append(_a)
+assert len(vec_paths_in) <= 1 and len(xbank_paths_in) <= 1, 'one spec file each for now'
+vec_arg = vec_paths_in[0] if vec_paths_in else ''
 vecmap = {}
 if vec_arg:
     for _vln in open(vec_arg):
@@ -98,6 +105,21 @@ def vectgt(_vb, _t):
     if _t >= 0xC000:
         return '%s_L%04X' % (bank, _t)
     return 'b%d_L%04X' % (_vb, _t)
+xbank_arg = xbank_paths_in[0] if xbank_paths_in else ''
+xbank = {}
+if xbank_arg:
+    for _xln in open(xbank_arg):
+        _xp = _xln.split('#', 1)[0].split()
+        if not _xp:
+            continue
+        assert len(_xp) == 2, 'bad xbank spec line'
+        _xl, _xb = _xp[0], int(_xp[1])
+        assert _xb in (0, 1, 2, 3, 4, 5, 6, 7), 'bad xbank bank'
+        _xt = _xl[6:] if _xl.startswith('entry_') else (_xl[1:] if _xl.startswith('L') else _xl)
+        assert len(_xt) == 4 and all(_c in HEX for _c in _xt), 'bad xbank label: ' + _xl
+        xbank[_xl] = _xb
+def xbfn(_xl):
+    return 'b%d_%s' % (xbank[_xl], _xl)
 
 lines = open(asm_path).read().split(chr(10))
 src_order = []
@@ -137,7 +159,10 @@ out.append('#include "runtime.h"')
 for e in entries:
     out.append('static void %s_%s(void);' % (bank, e))
 for e in sorted(stubset - set(entries)):
-    out.append('static void %s_%s(void);' % (bank, e))
+    if e not in xbank:
+        out.append('static void %s_%s(void);' % (bank, e))
+for _xl in sorted(xbank):
+    out.append('static void %s(void);' % xbfn(_xl))
 for _va in sorted(vecsites):
     assert _va in vecmap, 'vec site without targets: %04X' % _va
     out.append('static void %s(void);' % vecfn(_va))
@@ -285,13 +310,18 @@ for raw in lines:
             out.append('if (%s) goto %s;' % (cond, arg))
     elif op == 'jsr':
         assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
-        out.append('b7_%s();' % arg)
+        if arg in xbank:
+            out.append('%s();' % xbfn(arg))
+        else:
+            out.append('b7_%s();' % arg)
     elif op == 'jmp' and arg.startswith('('):
         assert arg.endswith(')'), 'bad jmp indirect: ' + arg
         out.append('%s(); return;' % vecfn(int(base_of(arg[1:-1].strip()), 16)))
     elif op == 'jmp':
         assert arg and arg[0] not in ('$', '#', '('), 'jmp needs a plain label target: ' + arg
-        if arg == cur:
+        if arg in xbank:
+            out.append('%s(); return;' % xbfn(arg))
+        elif arg == cur:
             out.append('goto b7_%s_top;' % cur)
         elif arg in entries or arg in stubset:
             out.append('b7_%s(); return;' % arg)
@@ -312,7 +342,8 @@ if cur is not None:
         out.append('return;')
     out.append('}')
 for st in sorted(stubset):
-    out.append('static void %s_%s(void) { __builtin_trap(); }' % (bank, st))
+    if st not in xbank:
+        out.append('static void %s_%s(void) { __builtin_trap(); }' % (bank, st))
 _vtdef = set()
 for _va in sorted(vecsites):
     for (_vb, _t) in vecmap[_va]:
@@ -332,6 +363,9 @@ for _va in sorted(vecsites):
     out.append('default: __builtin_trap();')
     out.append('}')
     out.append('}')
+for _xl in sorted(xbank):
+    if xbfn(_xl) not in _defined:
+        out.append('static void %s(void) { __builtin_trap(); }' % xbfn(_xl))
 missing = [e for e in entries if e not in found and e not in stubset]
 assert not missing, 'entry labels not found: ' + ','.join(missing)
 open(out_path, 'w').write(chr(10).join(out) + chr(10))

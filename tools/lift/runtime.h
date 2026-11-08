@@ -12,6 +12,8 @@ uint8_t *swbank = prg[0];
 uint8_t A, X, Y, S, P;
 uint8_t pad_bits;
 int pad_pos1, pad_pos2, strobe;
+int mmc_shift = 0, mmc_count = 0;
+uint8_t mmc_ctrl = 0x0C;
 static inline void setZN(uint8_t v) {
     P = (uint8_t)((P & 0x7D) | (v == 0 ? 0x02 : 0) | (v & 0x80));
 }
@@ -35,6 +37,18 @@ static void WR(uint16_t a, uint8_t v) {
         if ((strobe == 0) && (v & 1)) { pad_pos1 = 0; pad_pos2 = 0; }
         strobe = v & 1;
         if (strobe) { pad_pos1 = 0; pad_pos2 = 0; }
+        return;
+    }
+    if (a >= 0x8000) {
+        if (v & 0x80) { mmc_count = 0; mmc_ctrl |= 0x0C; swbank = prg[0]; return; }
+        mmc_shift = ((v & 1) << 4) | (mmc_shift >> 1);
+        if (++mmc_count == 5) {
+            int reg = (a >> 13) & 3;
+            if (reg == 0) mmc_ctrl = (uint8_t)(mmc_shift & 0x1F);
+            else if (reg == 3) swbank = prg[mmc_shift & 7];
+            mmc_count = 0;
+            mmc_shift = 0;
+        }
         return;
     }
 }
