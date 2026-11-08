@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include "build/lifted_input.c"
+#include "build/lifted_misc.c"
 static int failures = 0;
+static void check(int ok, const char *msg) {
+    printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
+    if (!ok) failures++;
+}
 static void run_case(const char *name, uint8_t pad, uint8_t want) {
     memset(ram, 0, sizeof ram);
     A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
@@ -22,6 +27,26 @@ int main(void) {
     run_case("Down", 0x20, 0x04);
     run_case("Left", 0x40, 0x02);
     run_case("Right", 0x80, 0x01);
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0xFF] = 0xFF;
+    b7_entry_E895();
+    check(ram[0xFF] == 0xFB && A == 0xFB && P == 0xA4, "E895 clears bit2, N set");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0xFF] = 0x00;
+    b7_entry_E89F();
+    check(ram[0xFF] == 0x04 && A == 0x04 && P == 0x24, "E89F sets bit2, no flags");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 5; S = 0xFD; P = 0x24;
+    ram[0x7A] = 0x50; ram[0x7B] = 0x02; ram[0x255] = 0xAB;
+    b7_entry_E996();
+    check(A == 0xAB && Y == 6 && ram[0] == 0xAB && ram[0x7B] == 0x02, "E996 ind-y taken, no hi-inc");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0xFF; S = 0xFD; P = 0x24;
+    ram[0x7A] = 0x50; ram[0x7B] = 0x02; ram[0x34F] = 0x77;
+    b7_entry_E996();
+    check(A == 0x77 && Y == 0 && ram[0] == 0x77 && ram[0x7B] == 0x03, "E996 ind-y wrap, hi-inc");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;

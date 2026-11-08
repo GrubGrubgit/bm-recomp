@@ -1,3 +1,5 @@
+#ifndef LIFT_RUNTIME_H
+#define LIFT_RUNTIME_H
 // Runtime shim for lifted Blaster Master code (prototype).
 // CPU state + memory map (RAM, PRG images, pad MMIO with split ports).
 #include <stdint.h>
@@ -31,3 +33,5 @@ static void WR(uint16_t a, uint8_t v) {
         return;
     }
 }
+
+#endif
