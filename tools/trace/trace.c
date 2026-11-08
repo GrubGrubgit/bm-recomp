@@ -487,7 +487,11 @@ int main(int argc, char **argv) {
       watch_lo = (int)strtol(argv[ai+1], 0, 16);
       watch_hi = watch_lo;
       ai += 2;
-      if (ai < argc && argv[ai][0] != '-') { watch_hi = (int)strtol(argv[ai], 0, 16); ai++; }
+      if (ai < argc && argv[ai][0] != '-') {
+        char *ep = 0;
+        long hv = strtol(argv[ai], &ep, 16);
+        if (ep != argv[ai] && *ep == 0) { watch_hi = (int)hv; ai++; }
+      }
     }
     if (ai < argc && strcmp(argv[ai], "-e") == 0) { edge_mode = 1; ai++; }
     if (ai < argc && strcmp(argv[ai], "-r") == 0 && ai + 2 < argc) { ram_out = fopen(argv[ai+1], "wb"); ram_every = atoi(argv[ai+2]); ai += 3; }

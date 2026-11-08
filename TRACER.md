@@ -56,3 +56,12 @@ CHR-ROM loaded. -r snapshots extended to 4160B (ram+vram+64B footer with
 pal/scroll/reg2000). CPU behavior verified unchanged (600f no-input run
 is bit-identical: 5815190 insns, final $EC70). snap2png.py renders
 snapshots with the real CHR (grayscale) -- this gave us EYES.
+## -w CLI footgun (2026-11-08, fixed)
+-w LO consumed the NEXT arg as HI whenever it did not start with dash,
+so -w F7 plus tape silently ate the tape path as HI (=0, range F7..00
+never fires, no tape loaded line). Fixed: HI is consumed only if the next
+arg fully parses as hex (strtol endptr check); tape paths contain slash so
+they are left alone. Verified: -w F7 plus tape now loads the tape and
+fires (24144 hits on sL run, ROL F7 at E929 writes 02 under Left).
+Lesson: optional numeric args must validate before consuming; always
+check for the tape loaded line on stderr when a watch run is silent.
