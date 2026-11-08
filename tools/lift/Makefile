@@ -8,7 +8,7 @@ test: build/test_input build/test_vec
 > ./build/test_input
 > ./build/test_vec
 
-build/test_input: test_input_main.c build/lifted_input.c build/lifted_misc.c build/lifted_jsr.c build/lifted_trans.c build/lifted_arith.c build/lifted_g3.c
+build/test_input: test_input_main.c build/lifted_input.c build/lifted_misc.c build/lifted_jsr.c build/lifted_trans.c build/lifted_arith.c build/lifted_g3.c build/lifted_b6.c
 > $(CC) $(CFLAGS) -I . -o build/test_input test_input_main.c
 
 build/lifted_input.c: fixtures/input_snip.s lift.py runtime.h
@@ -37,6 +37,10 @@ build/lifted_arith.c: fixtures/arith_snip.s lift.py runtime.h
 build/lifted_g3.c: fixtures/g3_snip.s lift.py runtime.h
 > mkdir -p build
 > $(LIFT) fixtures/g3_snip.s build/lifted_g3.c b7 entry_D7C0,entry_D7CF,entry_D804,entry_D81C,LE2AB
+
+build/lifted_b6.c: fixtures/b6_snip.s lift.py runtime.h
+> mkdir -p build
+> $(LIFT) fixtures/b6_snip.s build/lifted_b6.c b6 entry_B600,LB604,entry_B610
 
 build/test_vec: test_vec_main.c build/lifted_vec.c build/lifted_xbank.c build/lifted_ramcall.c
 > $(CC) $(CFLAGS) -I . -o build/test_vec test_vec_main.c

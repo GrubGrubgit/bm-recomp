@@ -2,14 +2,22 @@ import re, sys
 from py65.devices.mpu6502 import MPU
 from py65.disassembler import Disassembler
 W='/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/work/banks/'
-INFO='/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/disasm/info/prg7_auto.info'
-prg=open(W+'prg7.bin','rb').read()
-m=MPU(); m.memory[0xC000:0x10000]=prg; d=Disassembler(m)
+BANK = int(sys.argv[1]) if len(sys.argv) > 1 else 7
+BASE = 0xC000 if BANK == 7 else 0x8000
+INFO='/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/disasm/info/prg' + str(BANK) + '_auto.info'
+INFO7='/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/disasm/info/prg7_auto.info'
+prg=open(W+'prg' + str(BANK) + '.bin','rb').read()
+m=MPU(); m.memory[BASE:0x10000]=prg; d=Disassembler(m)
 ranges=[]
 for ln in open(INFO):
     if 'TYPE Code' not in ln or 'RANGE' not in ln: continue
     a=[int(x.split(';')[0],16) for x in ln.split('$')[1:3]]
-    if a[1]>=0xC000: ranges.append((max(a[0],0xC000),a[1]))
+    if a[1]>=BASE: ranges.append((max(a[0],BASE),a[1]))
+cset7=set()
+for ln in open(INFO7):
+    if 'TYPE Code' not in ln or 'RANGE' not in ln: continue
+    a=[int(x.split(';')[0],16) for x in ln.split('$')[1:3]]
+    if a[1]>=0xC000: cset7.update(range(max(a[0],0xC000),a[1]+1))
 ranges.sort()
 cset=set()
 for lo,hi in ranges:
@@ -36,12 +44,12 @@ for lo,hi in ranges:
         elif op in ('jsr','jmp'):
             mm=re.search(r'\$([0-9A-Fa-f]{4})',txt)
             t=int(mm.group(1),16) if mm else None
-            if t is None or t not in cset: bl.append((pc,'X-CODE '+txt))
+            if t is None or (t not in cset and t not in cset7): bl.append((pc,'X-CODE '+txt))
         elif op in ('brk','rti'): bl.append((pc,'SYS '+txt))
         pc+=n; tot+=1
     if bl: blockers[(lo,hi)]=bl
     else: clean+=1
-print('bank7 code ranges:',len(ranges),'insns:',tot,'clean:',clean,'blocked:',len(blockers))
+print('bank%d code ranges:' % BANK,len(ranges),'insns:',tot,'clean:',clean,'blocked:',len(blockers))
 cats={}
 for r,bl in blockers.items():
     for a,msg in bl:

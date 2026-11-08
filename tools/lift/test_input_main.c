@@ -6,6 +6,7 @@
 #include "build/lifted_trans.c"
 #include "build/lifted_arith.c"
 #include "build/lifted_g3.c"
+#include "build/lifted_b6.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
@@ -138,6 +139,15 @@ int main(void) {
     ram[0xCD] = 0xFE; ram[0xCE] = 0x80; ram[0xCF] = 0x02; ram[0xD0] = 0xBB; ram[0xD1] = 0xAA;
     b7_LE2AB();
     check(A == 0xFF && Y == 0 && P == 0xA4 && ram[0xCD] == 0 && ram[0x37E] == 0xAA && ram[0x37F] == 0xBB && ram[0x6F3] == 0xFF, "LE2AB y-wrap path, sty");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 9; Y = 0; S = 0xFD; P = 0x24;
+    b6_entry_B600();
+    check(X == 0, "B600 dex self-loop counts 3 to 0");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 7; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x10] = 1;
+    b6_entry_B610();
+    check(X == 0, "B610 branch-to-entry calls B600");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;

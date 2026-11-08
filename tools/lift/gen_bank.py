@@ -52,10 +52,24 @@ for ln in raw:
             print('directive dropped in %s: %s' % (cur[0], st[:40]))
             continue
         cur[2].append(ln)
+def group_kind(lns):
+    saw_directive = False
+    for _ln in lns:
+        _s = _ln.split(';', 1)[0]
+        if ':' in _ln and _ln[0] not in (' ', chr(9)):
+            _s = _s.split(':', 1)[1]
+        _s = _s.strip()
+        if not _s: continue
+        if _s.startswith('.'): saw_directive = True; continue
+        return 'code'
+    return 'data' if saw_directive else 'alias'
 kept = []
 for i, (nm, ad, lns) in enumerate(groups):
     if not in_code(ad): continue
     end = groups[i+1][1] if i+1 < len(groups) else ad + 0x4000
+    if group_kind(lns) == 'data':
+        print('data drop %s (%04X)' % (nm, ad))
+        continue
     if any(lo <= end - 1 and hi >= ad for lo, hi in excl):
         print('drop %s (%04X)' % (nm, ad))
         continue

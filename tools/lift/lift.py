@@ -112,14 +112,15 @@ if xbank_arg:
         _xp = _xln.split('#', 1)[0].split()
         if not _xp:
             continue
-        assert len(_xp) == 2, 'bad xbank spec line'
+        assert len(_xp) in (2, 3), 'bad xbank spec line'
         _xl, _xb = _xp[0], int(_xp[1])
+        _xt = _xp[2] if len(_xp) == 3 else _xp[0]
         assert _xb in (0, 1, 2, 3, 4, 5, 6, 7), 'bad xbank bank'
-        _xt = _xl[6:] if _xl.startswith('entry_') else (_xl[1:] if _xl.startswith('L') else _xl)
-        assert len(_xt) == 4 and all(_c in HEX for _c in _xt), 'bad xbank label: ' + _xl
-        xbank[_xl] = _xb
+        _xck = _xt[6:] if _xt.startswith('entry_') else (_xt[1:] if _xt.startswith('L') else _xt)
+        assert len(_xck) == 4 and all(_c in HEX for _c in _xck), 'bad xbank target: ' + _xt
+        xbank[_xl] = (_xb, _xt)
 def xbfn(_xl):
-    return 'b%d_%s' % (xbank[_xl], _xl)
+    return 'b%d_%s' % (xbank[_xl][0], xbank[_xl][1])
 
 lines = open(asm_path).read().split(chr(10))
 src_order = []
@@ -188,13 +189,13 @@ for raw in lines:
                 if last_op not in ('rts', 'jmp'):
                     assert cur != src_order[-1], 'unterminated entry: ' + cur
                     nx = src_order[src_order.index(cur) + 1]
-                    out.append('b7_%s();' % nx)
+                    out.append('%s_%s();' % (bank, nx))
                     out.append('return;')
                 out.append('}')
             last_op = None
             out.append('static void __attribute__((used)) %s_%s(void) {' % (bank, name))
             if name in self_tgt:
-                out.append('b7_%s_top:;' % name)
+                out.append('%s_%s_top:;' % (bank, name))
             cur = name
             found.add(name)
         else:
@@ -302,9 +303,9 @@ for raw in lines:
     elif op in BR:
         cond = BR[op]
         if arg == cur:
-            out.append('if (%s) goto b7_%s_top;' % (cond, cur))
+            out.append('if (%s) goto %s_%s_top;' % (cond, bank, cur))
         elif arg in entries or arg in stubset:
-            out.append('if (%s) { b7_%s(); return; }' % (cond, arg))
+            out.append('if (%s) { %s_%s(); return; }' % (cond, bank, arg))
         else:
             assert arg in all_labels, 'branch target outside lifted regions: ' + arg
             out.append('if (%s) goto %s;' % (cond, arg))
@@ -313,7 +314,7 @@ for raw in lines:
         if arg in xbank:
             out.append('%s();' % xbfn(arg))
         else:
-            out.append('b7_%s();' % arg)
+            out.append('%s_%s();' % (bank, arg))
     elif op == 'jmp' and arg.startswith('('):
         assert arg.endswith(')'), 'bad jmp indirect: ' + arg
         out.append('%s(); return;' % vecfn(int(base_of(arg[1:-1].strip()), 16)))
@@ -322,9 +323,9 @@ for raw in lines:
         if arg in xbank:
             out.append('%s(); return;' % xbfn(arg))
         elif arg == cur:
-            out.append('goto b7_%s_top;' % cur)
+            out.append('goto %s_%s_top;' % (bank, cur))
         elif arg in entries or arg in stubset:
-            out.append('b7_%s(); return;' % arg)
+            out.append('%s_%s(); return;' % (bank, arg))
         else:
             assert arg in all_labels, 'jmp target outside lifted regions: ' + arg
             out.append('goto %s;' % arg)
@@ -338,7 +339,7 @@ if cur is not None:
     if last_op not in ('rts', 'jmp'):
         assert cur != src_order[-1], 'unterminated final entry: ' + cur
         nx = src_order[src_order.index(cur) + 1]
-        out.append('b7_%s();' % nx)
+        out.append('%s_%s();' % (bank, nx))
         out.append('return;')
     out.append('}')
 for st in sorted(stubset):

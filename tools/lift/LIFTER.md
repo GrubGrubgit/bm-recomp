@@ -192,3 +192,20 @@ Dropped C3CF-C3D1; TU regen with 5 excludes: 950 fns, 10384 lines, 7 stubs
 test: codegen has b7_L0000() + trap def, forked call traps. 28/28 + 9/9 PASS.
 Bank7 is now complete: everything lifted except 3 data islands, 2 dead
 vectors + 1 data table (excluded), and 7 documented loud traps.
+
+## Whole-bank bank6 (DONE 2026-11-08)
+lift.py bank-prefix is now the bank argv (was hardcoded b7_); bank7 TU regen
+is byte-identical, and make test still passes -- behavior-preserving proof.
+xbank spec lines grew an optional TARGET (LABEL BANK [TARGET]): bank6 and
+bank7 da65 names differ per file (LD136 vs entry_D136), so work/bank6xmap.py
+maps by ADDRESS to the bank7 kept-label name (entry_-preferred). 77 refs, all
+to real bank7 fns, 0 unmapped. (One lift bug fixed en route: _xt overwrite.)
+gen_bank.py auto-drops data-only groups (directives, no code) but keeps pure
+alias labels (fall-through is correct for them); referenced data becomes loud
+traps (LCE02 pattern). Bank7 regen with auto-drop is byte-identical (its data
+was already out) -- safe. survey.py takes BANK argv and accepts fixed-bank
+targets. Bank6 survey: 109 ranges, 4982 insns, ALL clean, no new ops needed.
+Bank6 TU with ZERO excludes + xbank_b6t7: 875 fns, 8699 lines, 0 b6 stubs,
+RC=0 zero warnings. Fixture b6_snip.s locks the b6 prefix (self-loop +
+branch-to-entry); make test 30/30 + 9/9. Deferred to bank5 link-up: combined
+TU needs static/collision handling (xbank prov-skip + C-label namespacing).
