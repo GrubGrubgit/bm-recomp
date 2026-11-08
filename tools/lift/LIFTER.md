@@ -52,3 +52,17 @@ covered, so LE8A9-head is liftable except external-RAM-vector beq
 semantics are in-snippet already (beq LE8C2 needs its body: undoc).
 Next: parity harness (lifted bank vs tracer watch diffs on tapes);
 then whole-function lifting across info Code ranges.
+
+## Whole-bank op survey (2026-11-08, decoded non-byte lines)
+prg7 (5764 ops): jmp218 adc206 clc186 lsr126 asl93 tax59 ldy50 txa49
+  eor34 ror30 bit28 dec24 tay21 tya13 dey10 bvs10 cpx8 txs4 sty4 cpy4
+  bvc2 rti2 tsx1 sei1 cld1. prg6 (4503): jmp290 adc129 lsr119 clc115
+  dec47 eor29 ldy28 tax27 bit25 asl21 cpx10 bvs5 sty5 txa5 ror2 bvc1
+  tay1. prg4 (3858): jmp179 adc117 clc98 lsr64 asl39 tax38 dec31 ldy24
+  ror24 cpx17 eor14 txa5 bit5 tay4 tya3 cpy2 sty2 php2 cli1 bvs1.
+  prg5 (552): jmp25 asl14 adc11 tay9 clc8 ldy7 dec5 eor3 tya3 tax2
+  lsr2 cpx2 txa1 cpy1. prg0-3: tiny decoded residue (jmp/clc/asl/php).
+Round 4 order (bank7-driven): transfers tax/txa/tay/tya/tsx/txs/dey/dec,
+shifts asl/lsr/ror, adc+eor+clc, cpx/cpy, bit+bvs/bvc, ldy/sty, jmp-goto
+(absolute; indirect stays a trace-fed switch), rti/sei/cli/cld as
+NMI-runtime notes. Fixture-driven, one group at a time.
