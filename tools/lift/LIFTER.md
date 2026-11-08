@@ -209,3 +209,17 @@ Bank6 TU with ZERO excludes + xbank_b6t7: 875 fns, 8699 lines, 0 b6 stubs,
 RC=0 zero warnings. Fixture b6_snip.s locks the b6 prefix (self-loop +
 branch-to-entry); make test 30/30 + 9/9. Deferred to bank5 link-up: combined
 TU needs static/collision handling (xbank prov-skip + C-label namespacing).
+
+## Whole-bank bank5 (DONE 2026-11-08)
+Bank5 is the music engine + data tables. Survey: 9 Code ranges, 625 insns,
+4 blocked ranges all music DATA with JAM guards. Proven never-executed:
+0 hits across trace0+trace1 (17.4M insns, 575K in bank5). BFE5/BFE8/BFF1
+are trampolines to entry_8000/8013/8077. The lone jsr entry_B2C5 sits
+inside a data island (false ref); its trap is honest -- executing it would
+hang hardware. Excluded the 4 data ranges.
+xbank_b5.txt gained TARGETs (LBFE5 5 entry_BFE5) so the combined link will
+resolve; bank7 regen now calls b5_entry_BFE5 (RC=0, only 3 lines differ).
+Bank5 TU: 4 excludes + xbank_b5t7 (5 refs to bank7): 91 fns, RC=0, 0 b5
+stubs. Fixture b5_snip.s (closed L839A ora-bit5 / LBEA6 and-clear-bit0);
+make test 32/32 + 9/9. work/bank6xmap.py takes BANK argv.
+Fixed lift xbank TARGET overwrite bug; fixtures regression-cover it.

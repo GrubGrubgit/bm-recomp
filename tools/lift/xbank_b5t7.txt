@@ -1,0 +1,7 @@
+# bank refs to fixed-bank routines (address-mapped)
+# bank da65 names may differ from bank7; TARGET is bank7 name
+LC063 7 entry_C063
+LC0A2 7 entry_C0A2
+LC0FF 7 entry_C0FF
+LC138 7 entry_C138
+LC17A 7 entry_C17A

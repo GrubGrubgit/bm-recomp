@@ -1,4 +1,5 @@
 # cross-bank calls from bank7 fixed code (DEC2 region); bank mapped at runtime per traces
-LBFE5 5
-LBFE8 5
-LBFF1 5
+# TARGETs are bank5 entry names (bank7 aliases LBFE5 etc. differ)
+LBFE5 5 entry_BFE5
+LBFE8 5 entry_BFE8
+LBFF1 5 entry_BFF1

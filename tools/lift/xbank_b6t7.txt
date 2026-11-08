@@ -1,5 +1,5 @@
-# bank6 refs to fixed-bank routines (address-mapped 2026-11-08)
-# bank6 da65 names differ from bank7 (LD136 vs entry_D136); TARGET is bank7 name
+# bank refs to fixed-bank routines (address-mapped)
+# bank da65 names may differ from bank7; TARGET is bank7 name
 LC5B2 7 entry_C5B2
 LCBA9 7 entry_CBA9
 LCBDF 7 entry_CBDF
