@@ -12,6 +12,7 @@ uint8_t *swbank = prg[0];
 uint8_t A, X, Y, S, P;
 uint8_t pad_bits;
 int pad_pos1, pad_pos2, strobe;
+int uw_abort;
 int mmc_shift = 0, mmc_count = 0;
 uint8_t mmc_ctrl = 0x0C;
 static inline void setZN(uint8_t v) {

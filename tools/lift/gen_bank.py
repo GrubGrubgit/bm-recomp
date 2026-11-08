@@ -11,6 +11,7 @@ vec_paths = []
 amap_paths = []
 prov_paths = []
 jtab_paths = []
+unwind_args = []
 for e in sys.argv[6:]:
     if e.startswith('VEC:'):
         vec_paths.append(e[4:])
@@ -20,6 +21,8 @@ for e in sys.argv[6:]:
         prov_paths.append(e[5:])
     elif e.startswith('JMPTAB:'):
         jtab_paths.append(e[7:])
+    elif e.startswith('UNWIND:'):
+        unwind_args.append(e)
     elif e.startswith('XBANK:'):
         raise AssertionError('XBANK retired; use ADDRMAP')
     else:
@@ -119,7 +122,7 @@ for nm, ad, lns in kept:
     out.extend(lns)
 open(snip_path, 'w').write(chr(10).join(out) + chr(10))
 el = ','.join(sorted(entries))
-lift_specs = ['VEC:' + p for p in vec_paths] + ['ADDRMAP:' + p for p in amap_paths] + ['PROV:' + p for p in prov_paths] + ['JMPTAB:' + p for p in jtab_paths]
+lift_specs = ['VEC:' + p for p in vec_paths] + ['ADDRMAP:' + p for p in amap_paths] + ['PROV:' + p for p in prov_paths] + ['JMPTAB:' + p for p in jtab_paths] + unwind_args
 r = subprocess.run(['python3', '/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/recomp/tools/lift/lift.py', snip_path, out_c, 'b%d' % banknum, el, ','.join(stubs)] + lift_specs, capture_output=True, text=True)
 print('ELN:', len(el.split(','))); print(r.stdout[-500:]); print(r.stderr[-2000:])
 sys.exit(r.returncode)

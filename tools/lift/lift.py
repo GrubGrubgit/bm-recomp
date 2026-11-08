@@ -85,13 +85,18 @@ vec_paths_in = []
 amap_paths_in = []
 prov_paths_in = []
 jtab_paths_in = []
+unwind_mode_in = []
 for _a in sys.argv[6:]:
     if _a.startswith('VEC:'): vec_paths_in.append(_a[4:])
     elif _a.startswith('ADDRMAP:'): amap_paths_in.append(_a[8:])
     elif _a.startswith('PROV:'): prov_paths_in.append(_a[5:])
     elif _a.startswith('JMPTAB:'): jtab_paths_in.append(_a[7:])
+    elif _a.startswith('UNWIND:'): unwind_mode_in.append(_a[7:])
     elif _a.startswith('XBANK:'): raise AssertionError('XBANK retired; use ADDRMAP')
     elif _a: vec_paths_in.append(_a)
+assert len(unwind_mode_in) <= 1, 'one UNWIND mode for now'
+unwind_mode = unwind_mode_in[0] if unwind_mode_in else 'off'
+assert unwind_mode in ('off', 'log', 'enforce'), 'bad UNWIND mode: ' + unwind_mode
 assert len(vec_paths_in) <= 1 and len(amap_paths_in) <= 1 and len(prov_paths_in) <= 1 and len(jtab_paths_in) <= 1, 'one spec file each for now'
 vec_arg = vec_paths_in[0] if vec_paths_in else ''
 banknum = int(bank[1:])
@@ -372,12 +377,23 @@ for raw in lines:
     elif op == 'jsr':
         assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
         _xr = xresolve(arg)
-        out.append('S = (uint8_t)(S - 2);')
         if _xr is not None:
-            out.append('b%d_%s();' % (_xr[0], _xr[1]))
+            _callee = 'b%d_%s' % (_xr[0], _xr[1])
         else:
-            out.append('%s_%s();' % (bank, arg))
-        out.append('S = (uint8_t)(S + 2);')
+            _callee = '%s_%s' % (bank, arg)
+        _caller = '%s_%s' % (bank, cur)
+        if unwind_mode == 'off':
+            out.append('S = (uint8_t)(S - 2);')
+            out.append(_callee + '();')
+            out.append('S = (uint8_t)(S + 2);')
+        elif unwind_mode == 'log':
+            out.append('S = (uint8_t)(S - 2);')
+            out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s) fprintf(stderr, ' + chr(34) + 'UNWIND caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); }')
+            out.append('S = (uint8_t)(S + 2);')
+        else:
+            out.append('S = (uint8_t)(S - 2);')
+            out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort) return; }')
+            out.append('S = (uint8_t)(S + 2);')
     elif op == 'jmp' and arg.startswith('('):
         assert arg.endswith(')'), 'bad jmp indirect: ' + arg
         out.append('%s(); return;' % vecfn(int(base_of(arg[1:-1].strip()), 16)))

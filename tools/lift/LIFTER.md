@@ -353,3 +353,81 @@ Model gap G2 generalized (deferred): any unbalanced/shared-tail rts, pla-eaten f
 Analysis pitfall: closed_targets must not treat a missing root as closed (vacuous closure) -- sweep.py now WARNs+skips unknown roots.
 Regen recipe v3 (current): analyze.py LEN2 now also holds the 12 indirect-ALU ops (01/11/21/31/41/51/61/71/C1/D1/E1/F1) plus 0x95. Two bank-data carves via analyze.py --excl (wired per-bank in rebuild.sh): bank0 806D-807E, bank2 B2C6-B2CC -- both decode as code only by sliding through undoc/JAM/BRK bytes with zero execution evidence anywhere. Never carve a lifted bank on decode-shape alone; carving needs no-exec PLUS a halt-byte (JAM/BRK) or equivalent. Unlabeled dead Code ranges (e.g. FDB0-FDB7) are inert: gen_bank only lifts labeled groups and ADDRMAP only lists kept labels.
 How new D7A0-class gaps were found (repeatable): execset.py builds the executed-(bank,pc) set over all trace/edge logs in one pass; verdict.py intersects it with gapcheck gaps. Interior execution (beyond the lo endpoint) in a ByteTable gap means linear code until proven otherwise; lo-endpoint-only hits are usually scanbytes-oplen boundary artifacts or jump-table adjacency (G2 class). Confirm by manual decode + clean control flow, then extend LEN, rebuild, review every info diff range-by-range (any bank0-3 growth or halt-byte inclusion = false descent, carve it), regen, resweep.
+
+## Stack-unwind safety net / G2 closure (DONE 2026-11-08)
+
+Problem: rts-as-C-return diverges wherever 6502 code eats live return
+addresses and returns past its caller: entry_9007 (lda $46 / bne shared
+rts; $46==0 path runs jsr LC1CE then pla/pla/rts, eating the 8FD3 frame
+and popping wilderness) and the bank7 D710 hub (a shared-tail rts reached
+both by direct beq/bcc branches for balanced returns and by a pla/pla +
+lda #$FF unwind block eating one frame, e.g. via the D711 -> LD6CD chain,
+resuming mid-code such as D773). Zero-state 8FC3 FAIL plus 9A8E/970C/9B64
+SKIPs plus snapshot 20 SKIP + 10 FAIL all traced to these two shapes with
+py65 step traces (8FC3: 82 steps to the 9010 escape; D710 escapes at
+depths 2/5 with popped D772/9B09/993C/0000 against shadow tops).
+
+Mechanism (lift.py UNWIND:off|log|enforce, forwarded by gen_bank.py;
+runtime.h gains int uw_abort): every jsr site emits S -= 2, a snapshot of
+S, the callee call, then: first S mismatch sets uw_abort with one stderr
+UNWIND-ESCAPE note (caller/callee/S/want) and every level returns
+immediately, preserving S, so the closure unwinds to the driver, which
+dumps the escape state. Balanced callees see S == snapshot and behave
+bit-identically to before. Tail calls, branch-to-entry calls and the vec
+dispatch propagate automatically through bare returns. Fixtures build with
+the default off mode, so make test covers the off path.
+
+Oracle side (work-local oracle_esc.py / oracle_snap_esc.py + sweep_esc.py):
+the shadow-stack oracle stops at the FIRST rts whose popped PC + 1 differs
+from the shadow top and reports the pre-rts state as done (root-level
+empty-shadow rule unchanged). Sound residue-taint tracks the one known
+C/hardware stack divergence (G1: lifted jsr pushes no residue bytes):
+JSR/BRK pushes mark stack bytes, pha/php/stores propagate the pushing
+reg taint, pla/plp/loads/transfers/ALU propagate into A/X/Y, a sticky bit
+records any flag-setting op with a tainted source, and snapshot/zero-state
+initial bytes are clean (both sides copy the same init). sweep_esc masks
+tainted A/X/Y (and P when any of those or the flag bit is tainted) plus
+tainted-mem RAM bytes on escape-dones; S is never masked. Balanced dones
+verify zero taint.
+
+Verification (phased): Phase-1 log build reproduces baseline verdicts
+exactly (61 PASS + 3 SKIP + 1 FAIL zero-state) with UNWIND firing only on
+the 4 known-divergent targets and silence on all 61 PASS paths; txs owners
+(C29E/C2AC/LE351/F23B) statically proven unreached by every closed closure.
+Phase-2 enforce + escape-stop: zero-state 65/65 PASS (10 exact + 55
+masked) with 8FC3 FAIL and 9A8E/970C/9B64 SKIP all converting to PASS;
+snapshot 716/716 PASS (106 exact + 610 masked) with all 20 former SKIP and
+10 former FAIL converting. C-side and oracle-side escapes agree 1:1 (4
+zero-state + 30 snapshot, all on the two documented shapes, zero
+one-sided escapes). Parity is now agreement up to the first stack escape.
+
+Regen recipe v4 (UNWIND:enforce appended to each gen_bank line; maps and
+excludes unchanged): bank7t with 5 excludes + VEC + ADDRMAP + PROV, bank6
+with ADDRMAP + PROV, bank5 with 4 excludes + ADDRMAP + PROV, bank4 with
+80C9-80DE + ADDRMAP + PROV + JMPTAB, all plus UNWIND:enforce; combined.c
+as before (7t/6/5/4 order, -Wall -Wextra clean); smoke drivers init
+uw_abort = 0. Counts unchanged (972/875/91/622, 4 named traps + default).
+
+Forward note: full-game-loop integration will need target-resume (jumping
+to the popped mid-function continuation instead of unwinding to the
+driver). The escape logs already record the exact resume PCs
+(UNWIND-ESCAPE caller/callee/S on the C side, ORACLE-ESCAPE
+pc/popped/want/depth on the oracle side), so that design starts from
+measured data, not guesswork.
+
+Dead-path census (same unit): 900E/900F/9010, the 9434-block trailing
+pla/pla, the 91A1 pla-x4 abort cluster and the 903A chain show zero hits
+in the full 5541-PC exec census over all trace and edge logs; only the
+synthetic zero-state init ($46==0) forces the 9007 unwind, while real
+gameplay traces always take the balanced bne path there.
+
+Bank0-3 verdict (same unit, full corpus): zero executed PCs, zero
+crossing edges, zero edge destinations in banks 0-3. Islands catalogued
+but unreached (bank0: 111 decoded ops incl. prologue idioms; bank1: one
+jmp; bank2: $BF53-$BF8A 56-byte island with a jsr into the carved JAM
+region, byte-identical copy present in bank3; bank3: $BF53 island plus
+ora/asl/brk slides). Not lifted, no blind tapes run; next hunt should be
+a directed boss/deep-dungeon tape with RAM-position feedback, then a
+re-census. Stub verdict: no bodies (all traps silent across both esc
+sweeps: L0000 init trampoline and LEB91 NMI are harness-unreached by
+design, b6_L9B98/L9BDB never execute, vec default is by design).
