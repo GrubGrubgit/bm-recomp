@@ -7,7 +7,7 @@ LIFT = python3 lift.py
 test: build/test_input
 > ./build/test_input
 
-build/test_input: test_input_main.c build/lifted_input.c build/lifted_misc.c build/lifted_jsr.c build/lifted_trans.c
+build/test_input: test_input_main.c build/lifted_input.c build/lifted_misc.c build/lifted_jsr.c build/lifted_trans.c build/lifted_arith.c
 > $(CC) $(CFLAGS) -I . -o build/test_input test_input_main.c
 
 build/lifted_input.c: fixtures/input_snip.s lift.py runtime.h
@@ -28,3 +28,7 @@ build/lifted_jsr.c: fixtures/jsr_snip.s lift.py runtime.h
 build/lifted_trans.c: fixtures/trans_snip.s lift.py runtime.h
 > mkdir -p build
 > $(LIFT) fixtures/trans_snip.s build/lifted_trans.c b7 LC7C7,entry_CA14
+
+build/lifted_arith.c: fixtures/arith_snip.s lift.py runtime.h
+> mkdir -p build
+> $(LIFT) fixtures/arith_snip.s build/lifted_arith.c b7 entry_D136,entry_D151,entry_D161,entry_D02D

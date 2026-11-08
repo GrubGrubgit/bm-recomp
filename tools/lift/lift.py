@@ -50,8 +50,16 @@ out = []
 out.append('#include "runtime.h"')
 for e in entries:
     out.append('static void %s_%s(void);' % (bank, e))
+src_order = []
+for raw2 in lines:
+    ln2 = raw2.split(";")[0]
+    if ln2.strip() and ln2[0] != chr(32) and ln2[0] != chr(9) and ":" in ln2.strip():
+        nm = ln2.strip().split(":", 1)[0].strip()
+        if nm in entries and nm not in src_order:
+            src_order.append(nm)
 cur = None
 found = set()
+last_op = None
 for raw in lines:
     ln = raw.split(';')[0]
     if not ln.strip():
@@ -62,7 +70,12 @@ for raw in lines:
         name = name.strip()
         if name in entries:
             if cur is not None:
+                if last_op != 'rts':
+                    nx = src_order[src_order.index(cur) + 1]
+                    out.append('b7_%s();' % nx)
+                    out.append('return;')
                 out.append('}')
+            last_op = None
             out.append('static void %s_%s(void) {' % (bank, name))
             cur = name
             found.add(name)
@@ -74,6 +87,7 @@ for raw in lines:
             continue
     assert cur is not None, 'code outside entry: ' + s
     parts = s.split(None, 1)
+    last_op = parts[0]
     op = parts[0]
     arg = parts[1].strip() if len(parts) > 1 else ''
     if op == 'ldx' and arg.startswith('#'):
@@ -110,6 +124,8 @@ for raw in lines:
         out.append('S = (uint8_t)(S + 1); A = stk[S]; setZN(A);')
     elif op == 'sec':
         out.append('P = (uint8_t)(P | 0x01);')
+    elif op == 'clc':
+        out.append('P = (uint8_t)(P & 0xFE);')
     elif op == 'stx':
         out.append(wr_of(arg, 'X'))
     elif op == 'sta':
@@ -120,8 +136,6 @@ for raw in lines:
         out.append('A = (uint8_t)(A ^ %s); setZN(A);' % imm_of(arg))
     elif op == 'ora':
         out.append('A = (uint8_t)(A | %s); setZN(A);' % imm_of(arg))
-    elif op == 'cmp' and arg.startswith('#'):
-        out.append('{ uint8_t _r = (uint8_t)(A - %s); P = (uint8_t)((P & 0x7C) | (A >= %s ? 1 : 0) | (_r == 0 ? 2 : 0) | (_r & 0x80)); }' % (imm_of(arg), imm_of(arg)))
     elif op == 'rol':
         out.append('{ uint8_t _v = %s; uint8_t _c = (uint8_t)(P & 1); P = (uint8_t)((P & 0xFE) | (_v >> 7)); _v = (uint8_t)((_v << 1) | _c); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
     elif op == 'dec':
@@ -132,6 +146,14 @@ for raw in lines:
         out.append('P = (uint8_t)((P & 0x7C) | ((A & 0x80) ? 1 : 0)); A = (uint8_t)(A << 1); setZN(A);')
     elif op == 'lsr' and arg == 'a':
         out.append('P = (uint8_t)((P & 0x7C) | (A & 1)); A = (uint8_t)(A >> 1); setZN(A);')
+    elif op == 'bit':
+        out.append('{ uint8_t _m = %s; P = (uint8_t)((P & 0x3D) | (_m & 0xC0) | (((A & _m) == 0) ? 0x02 : 0)); }' % rd_of(arg))
+    elif op == 'ror':
+        out.append('{ uint8_t _v = %s; uint8_t _c = (uint8_t)((P & 1) << 7); P = (uint8_t)((P & 0xFE) | (_v & 1)); _v = (uint8_t)(_c | (_v >> 1)); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
+    elif op == 'asl' and arg != 'a':
+        out.append('{ uint8_t _v = %s; P = (uint8_t)((P & 0xFE) | (_v >> 7)); _v = (uint8_t)(_v << 1); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
+    elif op == 'lsr' and arg != 'a':
+        out.append('{ uint8_t _v = %s; P = (uint8_t)((P & 0xFE) | (_v & 1)); _v = (uint8_t)(_v >> 1); %s setZN(_v); }' % (rd_of(arg), wr_of(arg, '_v')))
     elif op == 'bne':
         out.append('if (!(P & 0x02)) goto %s;' % arg)
     elif op == 'beq':
@@ -144,8 +166,15 @@ for raw in lines:
         out.append('if (!(P & 0x80)) goto %s;' % arg)
     elif op == 'bmi':
         out.append('if (P & 0x80) goto %s;' % arg)
+    elif op == 'adc':
+        im = imm_of(arg) if arg.startswith('#') else rd_of(arg)
+        out.append('{ uint8_t _m = %s; uint16_t _r = (uint16_t)A + _m + (P & 1); uint8_t _R = (uint8_t)_r; P = (uint8_t)((P & 0x3C) | (_R == 0 ? 0x02 : 0) | (_R & 0x80) | ((_r & 0x100) ? 0x01 : 0) | ((((A ^ _R) & (_m ^ _R)) & 0x80) ? 0x40 : 0)); A = _R; }' % im)
     elif op == 'sbc':
-        out.append('{ uint8_t _m = %s; uint16_t _r = (uint16_t)A - _m - ((P & 1) ? 0 : 1); uint8_t _R = (uint8_t)_r; P = (uint8_t)((P & 0x3C) | (_R == 0 ? 0x02 : 0) | (_R & 0x80) | ((_r & 0x100) ? 0 : 0x01) | ((((A ^ _m) & (A ^ _R)) & 0x80) ? 0x40 : 0)); A = _R; }' % imm_of(arg))
+        im = imm_of(arg) if arg.startswith('#') else rd_of(arg)
+        out.append('{ uint8_t _m = %s; uint16_t _r = (uint16_t)A - _m - ((P & 1) ? 0 : 1); uint8_t _R = (uint8_t)_r; P = (uint8_t)((P & 0x3C) | (_R == 0 ? 0x02 : 0) | (_R & 0x80) | ((_r & 0x100) ? 0 : 0x01) | ((((A ^ _m) & (A ^ _R)) & 0x80) ? 0x40 : 0)); A = _R; }' % im)
+    elif op == 'cmp':
+        im = imm_of(arg) if arg.startswith('#') else rd_of(arg)
+        out.append('{ uint8_t _m = %s; uint8_t _r = (uint8_t)(A - _m); P = (uint8_t)((P & 0x7C) | (A >= _m ? 1 : 0) | (_r == 0 ? 2 : 0) | (_r & 0x80)); }' % im)
     elif op == 'jsr':
         assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
         out.append('b7_%s();' % arg)
@@ -156,6 +185,10 @@ for raw in lines:
     else:
         raise AssertionError('unsupported op: ' + s)
 if cur is not None:
+    if last_op != 'rts':
+        nx = src_order[src_order.index(cur) + 1]
+        out.append('b7_%s();' % nx)
+        out.append('return;')
     out.append('}')
 missing = [e for e in entries if e not in found]
 assert not missing, 'entry labels not found: ' + ','.join(missing)

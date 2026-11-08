@@ -4,6 +4,7 @@
 #include "build/lifted_misc.c"
 #include "build/lifted_jsr.c"
 #include "build/lifted_trans.c"
+#include "build/lifted_arith.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
@@ -80,6 +81,29 @@ int main(void) {
     ram[0x14] = 0x07;
     b7_entry_CA14();
     check(A == 0x80 && X == 0x0E && P == 0xA4 && ram[0x49] == 0x59 && ram[0x4B] == 0x15 && ram[0x48] == 0x80 && ram[0x4A] == 0x80, "CA14 asl/tax rom-table pair");
+    memset(ram, 0, sizeof ram);
+    memset(stk, 0, sizeof stk);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x4C] = 0x03; ram[0x4D] = 0x05;
+    b7_entry_D136();
+    check(A == 0xF5 && ram[0x4C] == 0xF3 && ram[0x4D] == 0xF5, "D136 clear-bits path");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x4C] = 0x83; ram[0x4D] = 0x05;
+    b7_entry_D136();
+    check(A == 0xF5 && P == 0xA4 && ram[0x4C] == 0x93 && ram[0x4D] == 0xF5, "D136 set-bit path, N kept");
+    memset(ram, 0, sizeof ram);
+    memset(stk, 0, sizeof stk);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x403] = 0x10; ram[0x405] = 0x02; ram[0x49] = 0x04; ram[0x4B] = 0x01;
+    b7_entry_D151();
+    check(A == 0x01 && X == 0x01 && P == 0x24 && ram[0] == 0x0C && ram[1] == 0x01 && ram[2] == 0x00, "D151 fallthrough, rol chain, table");
+    memset(ram, 0, sizeof ram);
+    memset(stk, 0, sizeof stk);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0] = 0x10; ram[1] = 0x02; ram[2] = 0x04; ram[3] = 0x01;
+    b7_entry_D02D();
+    check(A == 0xC0 && X == 0x05 && P == 0xA4 && ram[0] == 0x04 && ram[1] == 0x0C && ram[4] == 0x04 && ram[5] == 0x00 && ram[0x4C] == 0xC0 && ram[0x4D] == 0xFB, "D02D full divide path");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;

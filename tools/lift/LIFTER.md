@@ -78,3 +78,19 @@ from ROM tables LCA2B/LCA2C). make test: 17/17 PASS, incl. CA14 vs
 real bytes (X=0E -> 59/15) and LC7C7 pointer-chain values. txs/dey/
 dec-mem/lsr-a/tsx emitters share tested patterns, await fixtures.
 Next group: shifts-mem/ror + adc + ldy/sty + cpx/cpy.
+
+## Round 4 group 2 (DONE 2026-11-08): arithmetic + mem shifts + bit
+New ops: clc, adc imm/mem, sbc mem, cmp mem, bit zp/mem, ror/asl/lsr mem
+(via shared rd/wr helpers, V untouched by shifts, BIT preserves C).
+Fixtures arith_snip.s: real entry_D136 (bit/bmi/clc/adc mask helper),
+real entry_D151+D161 fallthrough (sbc abs, rol chain, ROM table), real
+entry_D02D 73-line divide routine (ror/asl/lsr mem, sbc/cmp/adc mem,
+bit, full branch family). make test: 21/21 PASS. Two real bugs found
+by py65-oracle cross-check (installed pip py65, ran ROM bytes): (1)
+ADC overflow subexpression used SBC shape, set phantom V on F0+05;
+fixed to ((A^R)&(M^R)). (2) Multi-entry files broke asm fallthrough
+(D151 ends mid-C-function); lift now appends tail-call + return when
+a function closes on a non-rts op. Whole-bank rule established.
+Still untested emitters: txs/tsx/dey/dec-mem/lsr-a/bvs/bvc (pattern-
+shared, fixtures pending). Next: ldy/sty/cpx/cpy + jmp-goto, then
+whole-function lifting across info Code ranges.
