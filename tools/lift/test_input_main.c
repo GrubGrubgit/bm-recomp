@@ -8,6 +8,7 @@
 #include "build/lifted_g3.c"
 #include "build/lifted_b6.c"
 #include "build/lifted_b5.c"
+#include "build/lifted_b4.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
@@ -159,6 +160,16 @@ int main(void) {
     ram[0x7F5] = 0xFF;
     b5_LBEA6();
     check(A == 0xFE && ram[0x7F5] == 0xFE, "BEA6 and-clear bit0");
+    memset(ram, 0, sizeof ram);
+    memset(ram + 0x100, 0, 0x100);
+    A = 0x10; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    b4_LB1F9();
+    check(A == 0x01 && P == 0x34 && S == 0xFD && ram[0x48] == 0x00 && ram[0x49] == 0x01, "B1F9 php/plp bcc path");
+    memset(ram, 0, sizeof ram);
+    memset(ram + 0x100, 0, 0x100);
+    A = 0x88; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    b4_LB1F9();
+    check(A == 0xF8 && P == 0xB4 && S == 0xFD && ram[0x48] == 0x80 && ram[0x49] == 0xF8, "B1F9 php/plp ora path");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;

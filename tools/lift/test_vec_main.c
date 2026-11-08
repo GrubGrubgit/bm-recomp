@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "build/lifted_vec.c"
-#include "build/lifted_xbank.c"
+#include "build/lifted_addrmap.c"
 #include "build/lifted_ramcall.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
@@ -42,7 +42,7 @@ int main(void) {
     check(traps_on(0xFF, 0xFF), "vec FFFF hits default trap");
     check(traps_on(0x27, 0x81), "vec 8127 reaches listed b6 stub trap");
     check(traps_on(0xF1, 0x8A), "vec 8AF1 reaches listed b4 stub trap");
-    check(call_traps(b7_entry_XBPB), "xbank LBFE8 stub traps");
+    check(call_traps(b7_entry_XBPB), "addrmap LBFE8 stub traps");
     swbank = prg[0]; mmc_shift = 0; mmc_count = 0;
     WR(0xE000, 0x01); WR(0xE000, 0x00); WR(0xE000, 0x01);
     WR(0xE000, 0x00); WR(0xE000, 0x00);

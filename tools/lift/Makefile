@@ -8,7 +8,7 @@ test: build/test_input build/test_vec
 > ./build/test_input
 > ./build/test_vec
 
-build/test_input: test_input_main.c build/lifted_input.c build/lifted_misc.c build/lifted_jsr.c build/lifted_trans.c build/lifted_arith.c build/lifted_g3.c build/lifted_b6.c build/lifted_b5.c
+build/test_input: test_input_main.c build/lifted_input.c build/lifted_misc.c build/lifted_jsr.c build/lifted_trans.c build/lifted_arith.c build/lifted_g3.c build/lifted_b6.c build/lifted_b5.c build/lifted_b4.c
 > $(CC) $(CFLAGS) -I . -o build/test_input test_input_main.c
 
 build/lifted_input.c: fixtures/input_snip.s lift.py runtime.h
@@ -46,16 +46,20 @@ build/lifted_b5.c: fixtures/b5_snip.s lift.py runtime.h
 > mkdir -p build
 > $(LIFT) fixtures/b5_snip.s build/lifted_b5.c b5 L839A,LBEA6
 
-build/test_vec: test_vec_main.c build/lifted_vec.c build/lifted_xbank.c build/lifted_ramcall.c
+build/lifted_b4.c: fixtures/b4_snip.s lift.py runtime.h
+> mkdir -p build
+> $(LIFT) fixtures/b4_snip.s build/lifted_b4.c b4 LB1F9,LB214,LB218
+
+build/test_vec: test_vec_main.c build/lifted_vec.c build/lifted_addrmap.c build/lifted_ramcall.c
 > $(CC) $(CFLAGS) -I . -o build/test_vec test_vec_main.c
 
 build/lifted_vec.c: fixtures/vec_snip.s fixtures/vec007A_mini.txt fixtures/addrmap_mini.txt lift.py runtime.h
 > mkdir -p build
 > $(LIFT) fixtures/vec_snip.s build/lifted_vec.c b7 entry_C9A4,LC9AE,LC9D3,LC900 entry_EA3A,entry_EB51 VEC:fixtures/vec007A_mini.txt ADDRMAP:fixtures/addrmap_mini.txt
 
-build/lifted_xbank.c: fixtures/xbank_snip.s fixtures/addrmap_mini.txt lift.py runtime.h
+build/lifted_addrmap.c: fixtures/addrmap_snip.s fixtures/addrmap_mini.txt lift.py runtime.h
 > mkdir -p build
-> $(LIFT) fixtures/xbank_snip.s build/lifted_xbank.c b7 entry_DEC2,entry_XBPB entry_DF05,entry_DF0A ADDRMAP:fixtures/addrmap_mini.txt
+> $(LIFT) fixtures/addrmap_snip.s build/lifted_addrmap.c b7 entry_DEC2,entry_XBPB entry_DF05,entry_DF0A ADDRMAP:fixtures/addrmap_mini.txt
 
 build/lifted_ramcall.c: fixtures/ramcall_snip.s lift.py runtime.h
 > mkdir -p build

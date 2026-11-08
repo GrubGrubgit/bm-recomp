@@ -272,3 +272,65 @@ traffic (LCACA cmp $0100,y; sta $0100,x / $010A,x), which must share cells
 with pha/pla. runtime.h now aliases: #define stk (ram + 0x100) (test-main
 and harness memsets updated to ram + 0x100). Remaining model gap G1: jsr
 is a C call so it leaves no residue -- covered by the guarded mask above.
+
+## Whole-bank bank4 (DONE 2026-11-08)
+
+Survey: 102 ranges / 4224 insns. Single exclude 80C9-80DE, proven DATA
+island (0 executions over 82M+ edge records plus 17.4M full-trace insns,
+all logs scanned). Everything else lifts, with three new lift features:
+
+- PLP + PHP, py65-exact (pulled/residue bits forced: stk[S] | 0x30).
+  Needed for B1B6-B284. Fixture fixtures/b4_snip.s is the real B1F9
+  php/plp block with two oracle-locked tests (bcc path and ora path).
+- jsr S-move: every lifted jsr emits S -= 2 around the C call and
+  S += 2 after, mirroring hardware stack-pointer movement (no dummy
+  writes; residue bytes still a documented gap, see G1).
+- JMPTAB slot map for fixed-bank jump-table slots called from the
+  C window: slots C015/C024/C0C0 resolve to D37D/D324/D7B6 (each
+  verified in ROM as JMP to a kept label). lift.py takes JMPTAB:path
+  and xresolve consults slots after the same-bank check; gen_bank.py
+  forwards JMPTAB:. Spec file: tools/lift/JMPTAB.txt.
+
+Census of all 528 bank4 label refs: only those 3 C-window addrs lack
+bank7 kept names (all others auto-resolve via ADDRMAP); all 76 bank4
+stubs are C-window labels (no switchable-window dropped-label hazard).
+Fixture renames: fixtures/xbank_snip.s -> fixtures/addrmap_snip.s
+(+ test_vec_main.c message). make test 34/34 + 9/9.
+
+Regen (byte-reproducible from committed sources + disasm input):
+  gen_bank.py banks/prg4_auto.s info/prg4_auto.info 4 bank4.snip bank4.c \
+    80C9-80DE ADDRMAP:ADDRMAP.txt PROV:PROV_ALL.txt JMPTAB:JMPTAB.txt
+Verified: rerun reproduces bank4.snip and bank4.c byte-identically.
+ADDRMAP/PROV 1916 -> 2529 entries; all 4 TUs regen RC=0 (bank4: 613
+kept groups); combined TU recompiles RC=0 with zero warnings under
+plain -Wall -Wextra. Trap defs down to 6 honest ones: b7_L0000 /
+LCE02 / LCEB1 / LEB91 plus deferred b6_L9B98 / b6_L9BDB (vec targets
+into bank6 gaps, 625 cold hits; deliberately kept trapping).
+Closure (path-insensitive over combined.c): bank6 33 closed / 41 open,
+bank4 28 closed / 10 open. Analysis-correctness note: match trap defs
+with a capture group and no post-split (a no-group findall + [1] split
+yields a bogus single trap named 'void' and silently reports 38 closed).
+Open targets confirmed live at runtime via trap instrumentation
+(replacing trap bodies with print+exit): 9B67/970F both hit b7_LCEB1.
+
+Parity sweep (smoke.c/smoke_oracle.py bank-parametric, shadow-stack
+oracle that breaks only on RTS with an empty shadow return stack):
+bank6 33/33 re-verified on current build (3 exact + 30 masked-sound,
+max 10 residue bytes, 0 MMC writes). Bank4 28: 26 PASS (7 exact +
+19 masked-sound, max 4 residue bytes, 0 MMC) plus two zero-state
+artifacts, both crash-family, both proven on hardware semantics:
+- 4:9A8E SKIP (oracle cap, depth 1): unbalanced return strands a
+  frame; execution wanders into the BRK vector and spins in the EB97
+  handler (RTI loop). The lifter cannot agree with hardware that
+  never returns.
+- 4:8FC3 documented gap G2: entry_9007 with $46==0 runs jsr LC1CE
+  (balanced), then pla/pla eats its own caller's live return address
+  (8FD3) and rts pulls the outer frame. Under zero-state S=FD that
+  is $0000 -> PC=$0001 -> BRK -> 920A RTS break (S=F8, A=$30).
+  The lifter models rts as a clean C return to 8FD4 (exit 0, S=FF).
+  Real-hardware behavior verified by instrumented oracle trace.
+
+Model gap G2 (new, gameplay-relevant): the pla-n-plus-rts stack-unwind
+idiom (early-exit abort past live frames) is not modeled -- a C return
+always resumes the direct caller. Fixing it needs an explicit return
+stack or longjmp design; deferred until a reached routine depends on it.

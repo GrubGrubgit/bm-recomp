@@ -84,13 +84,15 @@ entries = entry_arg.split(',')
 vec_paths_in = []
 amap_paths_in = []
 prov_paths_in = []
+jtab_paths_in = []
 for _a in sys.argv[6:]:
     if _a.startswith('VEC:'): vec_paths_in.append(_a[4:])
     elif _a.startswith('ADDRMAP:'): amap_paths_in.append(_a[8:])
     elif _a.startswith('PROV:'): prov_paths_in.append(_a[5:])
+    elif _a.startswith('JMPTAB:'): jtab_paths_in.append(_a[7:])
     elif _a.startswith('XBANK:'): raise AssertionError('XBANK retired; use ADDRMAP')
     elif _a: vec_paths_in.append(_a)
-assert len(vec_paths_in) <= 1 and len(amap_paths_in) <= 1 and len(prov_paths_in) <= 1, 'one spec file each for now'
+assert len(vec_paths_in) <= 1 and len(amap_paths_in) <= 1 and len(prov_paths_in) <= 1 and len(jtab_paths_in) <= 1, 'one spec file each for now'
 vec_arg = vec_paths_in[0] if vec_paths_in else ''
 banknum = int(bank[1:])
 vecmap = {}
@@ -119,6 +121,18 @@ if amap_arg:
         assert 0 <= _aa <= 0xFFFF and _ab in (0, 1, 2, 3, 4, 5, 6, 7), 'bad addrmap header'
         assert (_aa, _ab) not in amap, 'dup addrmap addr'
         amap[(_aa, _ab)] = _an
+slots = {}
+jtab_arg = jtab_paths_in[0] if jtab_paths_in else ''
+if jtab_arg:
+    for _jln in open(jtab_arg):
+        _jp = _jln.split('#', 1)[0].split()
+        if not _jp:
+            continue
+        assert len(_jp) == 2, 'bad jmptab spec line'
+        _ja, _jb = int(_jp[0], 16), int(_jp[1], 16)
+        assert 0 <= _ja <= 0xFFFF and 0 <= _jb <= 0xFFFF, 'bad jmptab header'
+        assert _ja not in slots, 'dup jmptab slot'
+        slots[_ja] = _jb
 prov = set()
 prov_arg = prov_paths_in[0] if prov_paths_in else ''
 if prov_arg:
@@ -141,6 +155,7 @@ def xresolve(lbl):
     a = labaddr_opt(lbl)
     if a is None: return None
     if (a, banknum) in amap: return None
+    if a in slots: a = slots[a]
     hits = [(b, n) for ((aa, b), n) in amap.items() if aa == a]
     if not hits: return None
     assert len(hits) == 1, 'ambiguous addrmap addr: ' + lbl
@@ -282,6 +297,10 @@ for raw in lines:
         out.append('S = X;')
     elif op == 'pha':
         out.append('stk[S] = A; S = (uint8_t)(S - 1);')
+    elif op == 'plp':
+        out.append('S = (uint8_t)(S + 1); P = (uint8_t)(stk[S] | 0x30);')
+    elif op == 'php':
+        out.append('stk[S] = (uint8_t)(P | 0x30); S = (uint8_t)(S - 1);')
     elif op == 'pla':
         out.append('S = (uint8_t)(S + 1); A = stk[S]; setZN(A);')
     elif op == 'sec':
@@ -353,10 +372,12 @@ for raw in lines:
     elif op == 'jsr':
         assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
         _xr = xresolve(arg)
+        out.append('S = (uint8_t)(S - 2);')
         if _xr is not None:
             out.append('b%d_%s();' % (_xr[0], _xr[1]))
         else:
             out.append('%s_%s();' % (bank, arg))
+        out.append('S = (uint8_t)(S + 2);')
     elif op == 'jmp' and arg.startswith('('):
         assert arg.endswith(')'), 'bad jmp indirect: ' + arg
         out.append('%s(); return;' % vecfn(int(base_of(arg[1:-1].strip()), 16)))
