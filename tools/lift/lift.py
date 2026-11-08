@@ -166,6 +166,12 @@ for raw in lines:
         out.append('P = (uint8_t)(P | 0x01);')
     elif op == 'clc':
         out.append('P = (uint8_t)(P & 0xFE);')
+    elif op == 'sei':
+        out.append('P = (uint8_t)(P | 0x04);')
+    elif op == 'cli':
+        out.append('P = (uint8_t)(P & 0xFB);')
+    elif op == 'cld':
+        out.append('P = (uint8_t)(P & 0xF7);')
     elif op == 'stx':
         out.append(wr_of(arg, 'X'))
     elif op == 'sty':

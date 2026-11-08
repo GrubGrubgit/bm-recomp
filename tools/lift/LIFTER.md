@@ -109,3 +109,14 @@ Remaining: ror/rol full confidence (used, more fixtures welcome),
 rti/sei/cli/cld (NMI notes), undoc ALU, jmp-indirect RAM/ROM switches.
 Next: whole-function lifting across info Code ranges, then parity
 harness (lifted bank vs tracer watch diffs on tapes).
+
+## Whole-bank liftability survey (DONE 2026-11-08, tools/lift/survey.py)
+Linear-sweeps every bank7 Code range with py65 (6268 insns, 130 ranges):
+122 ranges lift TODAY, 8 blocked, all categorized: DATA-with-label
+(FDA5 SIGN text, FDF4 RAM text, FB10 table base near THANKS: exclude),
+DYNAMIC (C3CF JSR $0000 RAM call: abort/log stub), CROSS-BANK (DEC2
+range calls bank5 BFE5/BFE8/BFF1: needs bank-switch call support),
+TRACE-SWITCH (C9D3 JMP ($007A): targets known from edges), SYSTEM
+(EB96/97 RTI, EBF4 BRK: stubs), TRIVIAL (F23C CLD: added with sei/cli,
+pattern-shared, fixtures pending). Whole-bank lift = all Code ranges
+as entries + bank-switch calls + RAM-vector switch + stubs.
