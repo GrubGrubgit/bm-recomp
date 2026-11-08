@@ -17,6 +17,7 @@ static int ppu_latch;
 static uint8_t ppu_buf;
 static uint8_t oam_addr;
 static uint8_t scx, scy;
+static uint8_t chr0, chr1;
 static int sc_latch;
 static uint8_t ppu_memread(uint16_t a) {
   if (a < 0x2000) return chrdata[a & 0x1FFFF];
@@ -135,6 +136,8 @@ static void mmc_write(uint16_t a, uint8_t v) {
   if (++mmc_count == 5) {
     int reg = (a >> 13) & 3;
     if (reg == 0) mmc_ctrl = mmc_shift & 0x1F;
+    else if (reg == 1) chr0 = mmc_shift & 0x1F;
+    else if (reg == 2) chr1 = mmc_shift & 0x1F;
     else if (reg == 3) { int nb = mmc_shift & 7; if (nb != prg_bank) { prg_bank = nb; edge(8, PC, (uint16_t)nb); } }
     mmc_count = 0;
     mmc_shift = 0;
@@ -550,7 +553,8 @@ int main(int argc, char **argv) {
       last_vb = vb;
       if (ram_out && ram_every > 0) { int frnow2 = (int)(cycles / CYCLES_PER_FRAME); if (frnow2 % ram_every == 0 && frnow2 != last_snap) { last_snap = frnow2; { fwrite(ram, 1, 0x800, ram_out); fwrite(vram, 1, 0x800, ram_out);
       { uint8_t ftr[64]; int fi; for (fi = 0; fi < 32; fi++) ftr[fi] = pal[fi];
-        ftr[32] = scx; ftr[33] = scy; ftr[34] = reg2000; for (fi = 35; fi < 64; fi++) ftr[fi] = 0;
+        ftr[32] = scx; ftr[33] = scy; ftr[34] = reg2000;
+        ftr[35] = chr0; ftr[36] = chr1; ftr[37] = mmc_ctrl; for (fi = 35; fi < 64; fi++) ftr[fi] = 0;
         fwrite(ftr, 1, 64, ram_out); } } } }
     }
   }

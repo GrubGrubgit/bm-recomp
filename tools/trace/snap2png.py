@@ -1,11 +1,16 @@
 import sys, struct, zlib
 STRIDE = 4160
-def png_gray(w, h, px):
-    raw = b''.join(b'\x00' + bytes(row) for row in px)
+NESPAL = [
+(0x75,0x75,0x75),(0x27,0x1B,0x8F),(0x00,0x00,0xAB),(0x47,0x00,0x9F),(0x8F,0x00,0x77),(0xAB,0x00,0x13),(0xA7,0x00,0x00),(0x7F,0x0B,0x00),(0x43,0x2B,0x00),(0x00,0x47,0x00),(0x00,0x51,0x00),(0x00,0x3A,0x6B),(0x00,0x00,0x00),(0x00,0x00,0x00),(0x00,0x00,0x00),(0x00,0x00,0x00),
+(0xBC,0xBC,0xBC),(0x00,0x78,0xF8),(0x00,0x58,0xF8),(0x68,0x44,0xFC),(0xD8,0x00,0xCC),(0xE4,0x00,0x58),(0xF8,0x38,0x00),(0xE4,0x5C,0x10),(0xAC,0x7C,0x00),(0x00,0xB8,0x00),(0x00,0xA8,0x00),(0x00,0xA8,0x44),(0x00,0x88,0x88),(0x00,0x00,0x00),(0x00,0x00,0x00),(0x00,0x00,0x00),
+(0xF8,0xF8,0xF8),(0x3C,0xBC,0xFC),(0x68,0x88,0xFC),(0x98,0x78,0xF8),(0xF8,0x78,0xF8),(0xF8,0x58,0x98),(0xF8,0x78,0x58),(0xFC,0xA0,0x44),(0xF8,0xB8,0x00),(0xB8,0xF8,0x18),(0x58,0xD8,0x54),(0x58,0xF8,0x98),(0x00,0xE8,0xD8),(0x78,0x78,0x78),(0x00,0x00,0x00),(0x00,0x00,0x00),
+(0xFC,0xFC,0xFC),(0xA4,0xE4,0xFC),(0xB8,0xB8,0xF8),(0xD8,0xB8,0xF8),(0xF8,0xB8,0xF8),(0xF8,0xA8,0xC0),(0xF0,0xD0,0xB0),(0xFC,0xE0,0xA8),(0xF8,0xD8,0x78),(0xD8,0xF8,0x78),(0xB8,0xF8,0xB8),(0xB8,0xF8,0xD8),(0x00,0xFC,0xFC),(0xF8,0xD8,0xF8),(0x00,0x00,0x00),(0x00,0x00,0x00)]
+def png_rgb(w, h, px):
+    raw = b''.join([bytes([0]) + bytes([c for t in row for c in t]) for row in px])
     c = zlib.compress(raw, 6)
     def chunk(t, d):
         return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
-    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 0, 0, 0, 0)) +
+    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)) +
             chunk(b'IDAT', c) + chunk(b'IEND', b''))
 def render(snap_path, frame, out_path, chr_path):
     f = open(snap_path, 'rb').read()
@@ -14,16 +19,27 @@ def render(snap_path, frame, out_path, chr_path):
     vr = rec[2048:4096]
     ftr = rec[4096:4160]
     scx, scy, r2000 = ftr[32], ftr[33], ftr[34]
+    chr0, chr1, mc = ftr[35], ftr[36], ftr[37]
+    pram = ftr[0:32]
+    mode8k = not (mc & 0x10)
+    b0 = (chr0 & 0xFE) if mode8k else chr0
+    b1 = (chr0 & 0xFE) if mode8k else chr1
     bg_hi = 0x1000 if (r2000 & 0x10) else 0x0000
     spr_hi = 0x1000 if (r2000 & 0x08) else 0x0000
     spr16 = bool(r2000 & 0x20)
     chrom = open(chr_path, 'rb').read()
-    def tile_px(base, t, row):
-        lo = chrom[base + t * 16 + row]
-        hi = chrom[base + t * 16 + row + 8]
-        return [((lo >> (7 - c)) & 1) | (((hi >> (7 - c)) & 1) << 1) for c in range(8)]
+    def tile_px(bank4k, t, row):
+        off = bank4k * 0x1000 + t * 16
+        lo = chrom[off + row]
+        hi = chrom[off + row + 8]
+        return [((lo >> (7 - q)) & 1) | (((hi >> (7 - q)) & 1) << 1) for q in range(8)]
+    def bg_bank():
+        return b1 if bg_hi else b0
+    def sp_bank():
+        return b1 if spr_hi else b0
+    bb = bg_bank()
     W, H = 256, 240
-    px = [[0] * W for _ in range(H)]
+    px = [[(0,0,0)] * W for _ in range(H)]
     for y in range(H):
         for x in range(W):
             sx = (x + scx) % 256
@@ -37,9 +53,12 @@ def render(snap_path, frame, out_path, chr_path):
             ax = vr[base + 0x3C0 + (ty // 4) * 8 + (tx // 4)]
             sh = (0 if (ty % 4) < 2 else 4) + (0 if (tx % 4) < 2 else 2)
             palhi = (ax >> sh) & 3
-            pat = tile_px(bg_hi, t, sy % 8)
+            pat = tile_px(bb, t, sy % 8)
             c = pat[sx % 8]
-            px[y][x] = (palhi * 64 + c * 21 + 40) % 256 if c else 0
+            if c == 0:
+                px[y][x] = NESPAL[pram[0] & 0x3F]
+            else:
+                px[y][x] = NESPAL[pram[palhi * 4 + c] & 0x3F]
     for s in range(64):
         oy = ram[0x200 + s * 4]
         ti = ram[0x200 + s * 4 + 1]
@@ -48,23 +67,22 @@ def render(snap_path, frame, out_path, chr_path):
         if oy >= 0xEF:
             continue
         hh = 16 if spr16 else 8
-        palb = (at & 3) * 64 + 128
+        palb = at & 3
         fx = bool(at & 0x40)
         fy = bool(at & 0x80)
         for r in range(hh):
             rr = (hh - 1 - r) if fy else r
             t2 = (ti & 0xFE) + (rr // 8) if spr16 else ti
-            b2 = spr_hi if spr16 else (0x1000 if (ti & 0) else bg_hi)
-            pat = tile_px(spr_hi, t2, rr % 8)
+            pat = tile_px(sp_bank(), t2, rr % 8)
             yy = oy + 1 + r
             if 0 <= yy < H:
-                for c in range(8):
-                    cc = (7 - c) if fx else c
+                for q in range(8):
+                    cc = (7 - q) if fx else q
                     v = pat[cc]
                     if v:
-                        xx = ox + c
+                        xx = ox + q
                         if 0 <= xx < W:
-                            px[yy][xx] = (palb + v * 30) % 256
-    open(out_path, 'wb').write(png_gray(W, H, px))
-    print('wrote ' + out_path + ' sc=%d,%d r2000=%02X' % (scx, scy, r2000))
+                            px[yy][xx] = NESPAL[pram[16 + palb * 4 + v] & 0x3F]
+    open(out_path, 'wb').write(png_rgb(W, H, px))
+    print('wrote ' + out_path + ' sc=%d,%d r2000=%02X chr=%d,%d' % (scx, scy, r2000, b0, b1))
 render(sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4])
