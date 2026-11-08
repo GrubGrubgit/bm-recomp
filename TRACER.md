@@ -35,3 +35,24 @@ zero-page RAM vector. With bank6 mapped it dispatches to 6 bank6 routines
 (8124/8127/815C/815F/92DB/92DE, first seen ~frame 1500). This is the
 pattern the tracer was built for: static analysis can never resolve a RAM
 vector, only runtime edges can. tracefeed reports such sites as RAM@addr.
+## Pad-register fix (2026-11-08, the big one)
+mem_rd shared ONE pad_pos counter for $4016 and $4017 while the game
+reads them ALTERNATELY ($4016,$4017,$4016,...). Result: P1 received only
+EVEN pad bits (A,Select,Up,Left), P2 got ODD bits (B,Start,Down,Right).
+Symptoms were bizarre: LEFT started the game (only P1-visible button with
+an effect on title), Start/Right/Down/B did NOTHING, tank frozen in Area 1
+(P1 input stuck at title-era value), false "auto-start" (attract timer),
+and a wild goose chase through boot timing. Fixed with separate
+pad_pos1/pad_pos2, both reset on strobe -- verified: Start@500 begins the
+game, tank drives, scroll moves, every frame differs. LESSON: when facing
+unexplained input behavior, diff the pad path against hardware FIRST
+(separate shift registers per port, strobe resets both, unread bits read
+as 0 here). Old logs (trace0/trace1/edge0/edgeplay/edgeA-D) are STALE
+(inputs meant different buttons) and must be regenerated.
+## PPU upgrade (same day)
+$2000/$2002/$2005/$2006/$2007 now behave (scroll regs, PPUADDR latch,
+buffered PPUDATA, palette, horizontal mirroring, $2002 latch reset).
+CHR-ROM loaded. -r snapshots extended to 4160B (ram+vram+64B footer with
+pal/scroll/reg2000). CPU behavior verified unchanged (600f no-input run
+is bit-identical: 5815190 insns, final $EC70). snap2png.py renders
+snapshots with the real CHR (grayscale) -- this gave us EYES.

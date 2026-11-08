@@ -10,6 +10,39 @@
 static uint8_t ram[0x800];
 static uint8_t prg[8][0x4000];
 static uint8_t vram[0x800];
+static uint8_t chrdata[0x20000];
+static uint8_t pal[32];
+static uint16_t ppu_addr;
+static int ppu_latch;
+static uint8_t ppu_buf;
+static uint8_t oam_addr;
+static uint8_t scx, scy;
+static int sc_latch;
+static uint8_t ppu_memread(uint16_t a) {
+  if (a < 0x2000) return chrdata[a & 0x1FFFF];
+  if (a >= 0x3F00) {
+    int idx = (a - 0x3F00) & 0x1F;
+    if ((idx & 3) == 0) idx &= 0x0F;
+    return pal[idx];
+  }
+  if (a >= 0x3000) a -= 0x1000;
+  a -= 0x2000;
+  if (a >= 0x800) a -= 0x400;
+  return vram[a & 0x7FF];
+}
+static void ppu_memwrite(uint16_t a, uint8_t v) {
+  if (a < 0x2000) return;
+  if (a >= 0x3F00) {
+    int idx = (a - 0x3F00) & 0x1F;
+    if ((idx & 3) == 0) idx &= 0x0F;
+    pal[idx] = v;
+    return;
+  }
+  if (a >= 0x3000) a -= 0x1000;
+  a -= 0x2000;
+  if (a >= 0x800) a -= 0x400;
+  vram[a & 0x7FF] = v;
+}
 static uint8_t oam[0x100];
 
 static uint8_t A, X, Y, S, P;
@@ -21,7 +54,7 @@ static long insns;
 static uint8_t reg2000;
 static int nmi_count, mmc_writes;
 static uint8_t pad_bits;
-static int pad_pos;
+static int pad_pos1, pad_pos2;
 static int strobe;
 static int watch_lo, watch_hi, watch_on;
 static int tape_fr[512];
@@ -29,6 +62,8 @@ static uint8_t tape_mk[512];
 static int tape_n;
 static FILE *edge_out;
 static int edge_mode;
+static FILE *ram_out;
+static int ram_every;
 static uint16_t eshadow[512];
 static uint8_t eshadow_plus[512];
 static int esp;
@@ -48,16 +83,36 @@ static uint8_t mem_rd(uint16_t a) {
     if (r == 2) {
       uint8_t v = 0;
       if (in_vblank()) v |= 0xC0;
+      ppu_latch = 0;
+      sc_latch = 0;
       return v;
     }
-    if (r == 4) return oam[0];
-    if (r == 7) return 0;
+    if (r == 4) return oam[oam_addr];
+    if (r == 7) {
+      uint16_t rpc = ppu_addr;
+      uint8_t out;
+      if (rpc >= 0x3F00) {
+        int idx = (rpc - 0x3F00) & 0x1F;
+        if ((idx & 3) == 0) idx &= 0x0F;
+        out = pal[idx];
+        ppu_buf = ppu_memread(rpc & 0x2FFF);
+      } else {
+        out = ppu_buf;
+        ppu_buf = ppu_memread(rpc);
+      }
+      ppu_addr = rpc + ((reg2000 & 4) ? 32 : 1);
+      return out;
+    }
     return 0;
   }
   if (a < 0x4020) {
     if (a == 0x4015) return 0;
-    if (a == 0x4016 || a == 0x4017) {
-      if (pad_pos < 8) return (pad_bits >> (pad_pos++)) & 1;
+    if (a == 0x4016) {
+      if (pad_pos1 < 8) return (pad_bits >> (pad_pos1++)) & 1;
+      return 0;
+    }
+    if (a == 0x4017) {
+      if (pad_pos2 < 8) return (pad_bits >> (pad_pos2++)) & 1;
       return 0;
     }
     return 0;
@@ -94,10 +149,11 @@ static void mem_wr(uint16_t a, uint8_t v) {
     int r = a & 7;
     if (r == 0) reg2000 = v;
     else if (r == 1) { }
-    else if (r == 3) { }
-    else if (r == 4) { }
-    else if (r == 5) { }
-    else if (r == 6) { }
+    else if (r == 3) oam_addr = v;
+    else if (r == 4) oam[oam_addr++] = v;
+    else if (r == 5) { if (!sc_latch) scx = v; else scy = v; sc_latch ^= 1; }
+    else if (r == 6) { if (!ppu_latch) ppu_addr = ((uint16_t)v << 8) | (ppu_addr & 0xFF); else ppu_addr = (ppu_addr & 0xFF00) | v; ppu_latch ^= 1; }
+    else if (r == 7) { ppu_memwrite(ppu_addr, v); ppu_addr += (reg2000 & 4) ? 32 : 1; }
     return;
   }
   if (a == 0x4014) {
@@ -108,9 +164,9 @@ static void mem_wr(uint16_t a, uint8_t v) {
     return;
   }
   if (a == 0x4016) {
-    if ((strobe == 0) && (v & 1)) pad_pos = 0;
+    if ((strobe == 0) && (v & 1)) { pad_pos1 = 0; pad_pos2 = 0; }
     strobe = v & 1;
-    if (strobe) pad_pos = 0;
+    if (strobe) { pad_pos1 = 0; pad_pos2 = 0; }
     return;
   }
   if (a == 0x4017) return;
@@ -410,6 +466,7 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
+  { size_t cn = fread(chrdata, 1, 0x20000, f); (void)cn; }
   fclose(f);
   FILE *out = fopen(argv[2], "wb");
   if (!out) { fprintf(stderr, "cannot open output\n"); return 1; }
@@ -426,10 +483,11 @@ int main(int argc, char **argv) {
       watch_on = 1;
       watch_lo = (int)strtol(argv[ai+1], 0, 16);
       watch_hi = watch_lo;
-      if (ai + 2 < argc && argv[ai+2][0] != '-') { watch_hi = (int)strtol(argv[ai+2], 0, 16); ai++; }
-      ai++;
+      ai += 2;
+      if (ai < argc && argv[ai][0] != '-') { watch_hi = (int)strtol(argv[ai], 0, 16); ai++; }
     }
     if (ai < argc && strcmp(argv[ai], "-e") == 0) { edge_mode = 1; ai++; }
+    if (ai < argc && strcmp(argv[ai], "-r") == 0 && ai + 2 < argc) { ram_out = fopen(argv[ai+1], "wb"); ram_every = atoi(argv[ai+2]); ai += 3; }
     if (ai < argc) {
       FILE *tf = fopen(argv[ai], "r");
       if (tf) {
@@ -443,12 +501,13 @@ int main(int argc, char **argv) {
   if (edge_mode && out) edge_out = out;
   A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
   prg_bank = 0; mmc_shift = 0; mmc_count = 0; mmc_ctrl = 0x0C;
-  reg2000 = 0; pad_bits = 0; pad_pos = 8; strobe = 0;
+  reg2000 = 0; pad_bits = 0; pad_pos1 = 8; pad_pos2 = 8; strobe = 0;
   cycles = 0; insns = 0; nmi_count = 0; mmc_writes = 0;
   PC = mem_rd(0xFFFC) | ((uint16_t)mem_rd(0xFFFD) << 8);
   printf("reset vector=$%04X\n", PC);
   uint64_t end = (uint64_t)frames * CYCLES_PER_FRAME;
   int last_vb = 0;
+  int last_snap = -1;
   uint16_t last_pc = 0;
   long same_pc = 0;
   int tape_idx = 0;
@@ -489,9 +548,14 @@ int main(int argc, char **argv) {
         cycles += 7;
       }
       last_vb = vb;
+      if (ram_out && ram_every > 0) { int frnow2 = (int)(cycles / CYCLES_PER_FRAME); if (frnow2 % ram_every == 0 && frnow2 != last_snap) { last_snap = frnow2; { fwrite(ram, 1, 0x800, ram_out); fwrite(vram, 1, 0x800, ram_out);
+      { uint8_t ftr[64]; int fi; for (fi = 0; fi < 32; fi++) ftr[fi] = pal[fi];
+        ftr[32] = scx; ftr[33] = scy; ftr[34] = reg2000; for (fi = 35; fi < 64; fi++) ftr[fi] = 0;
+        fwrite(ftr, 1, 64, ram_out); } } } }
     }
   }
   fclose(out);
+  if (ram_out) fclose(ram_out);
   printf("insns=%ld cycles=%llu nmis=%d mmc_writes=%d\n", insns, (unsigned long long)cycles, nmi_count, mmc_writes);
   printf("final PC=$%04X bank=%d A=$%02X X=$%02X Y=$%02X P=$%02X S=$%02X\n", PC, (PC >= 0xC000) ? 7 : prg_bank, A, X, Y, P, S);
   return 0;
