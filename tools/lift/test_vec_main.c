@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include "build/lifted_vec.c"
+static int failures = 0;
+static void check(int ok, const char *msg) {
+    fputs(ok ? "PASS " : "FAIL ", stdout);
+    puts(msg);
+    if (!ok) failures++;
+}
+static int traps_on(uint8_t lo, uint8_t hi) {
+    ram[0x7A] = lo; ram[0x7B] = hi;
+    fflush(stdout);
+    pid_t pid = fork();
+    if (pid == 0) { b7_vec_007A(); _exit(0); }
+    int st = 0;
+    waitpid(pid, &st, 0);
+    if (WIFEXITED(st)) return WEXITSTATUS(st) != 0;
+    return 1;
+}
+int main(void) {
+    memset(ram, 0, sizeof ram);
+    memset(stk, 0, sizeof stk);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x10] = 0;
+    ram[0x7A] = 0x00; ram[0x7B] = 0xC9;
+    b7_vec_007A();
+    check(ram[0x10] == 1, "vec C900 dispatches to same-bank probe");
+    check(traps_on(0xFF, 0xFF), "vec FFFF hits default trap");
+    check(traps_on(0x27, 0x81), "vec 8127 reaches listed b6 stub trap");
+    check(traps_on(0xF1, 0x8A), "vec 8AF1 reaches listed b4 stub trap");
+    if (failures) {
+        char b[64];
+        sprintf(b, "FAILURES=%d", failures);
+        puts(b);
+        return 1;
+    }
+    puts("ALL VEC TESTS PASS");
+    return 0;
+}

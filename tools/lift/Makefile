@@ -4,8 +4,9 @@ CC ?= cc
 CFLAGS ?= -O2 -Wall -Wextra
 
 LIFT = python3 lift.py
-test: build/test_input
+test: build/test_input build/test_vec
 > ./build/test_input
+> ./build/test_vec
 
 build/test_input: test_input_main.c build/lifted_input.c build/lifted_misc.c build/lifted_jsr.c build/lifted_trans.c build/lifted_arith.c build/lifted_g3.c
 > $(CC) $(CFLAGS) -I . -o build/test_input test_input_main.c
@@ -36,3 +37,10 @@ build/lifted_arith.c: fixtures/arith_snip.s lift.py runtime.h
 build/lifted_g3.c: fixtures/g3_snip.s lift.py runtime.h
 > mkdir -p build
 > $(LIFT) fixtures/g3_snip.s build/lifted_g3.c b7 entry_D7C0,entry_D7CF,entry_D804,entry_D81C,LE2AB
+
+build/test_vec: test_vec_main.c build/lifted_vec.c
+> $(CC) $(CFLAGS) -I . -o build/test_vec test_vec_main.c
+
+build/lifted_vec.c: fixtures/vec_snip.s fixtures/vec007A_mini.txt lift.py runtime.h
+> mkdir -p build
+> $(LIFT) fixtures/vec_snip.s build/lifted_vec.c b7 entry_C9A4,LC9AE,LC9D3,LC900 entry_EA3A,entry_EB51 fixtures/vec007A_mini.txt

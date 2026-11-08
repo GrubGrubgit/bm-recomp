@@ -138,3 +138,24 @@ Result: 910 functions, 9673 lines, RC=0 zero warnings, 517KB object
 28/28 fixture tests still pass after every lift.py change.
 Next: bank-switch calls (lift DEC2/bank5), C9D3 vector switch with
 trace targets, stub bodies, minimal entries, parity harness, banks 6/4.
+
+## RAM-vector switch (DONE 2026-11-08)
+lift.py lifts jmp (ADDR) as a tail call to a generated b7_vec_AAAA()
+switch over RD(lo)|(RD(hi)<<8). Targets come from edge logs via an
+optional 6th argv spec file (lines: VECADDR BANK TGT...). Same-bank
+(>=C000) targets call b7_ fns; switchable-window targets call bN_ trap
+stubs until banks 4/6 lift (link-time: then replaced by real decls).
+gen_bank.py forwards trailing VEC:path args to lift.py.
+Census over all 9 edge logs: single site jmp (L007A) at bank7 C9D3,
+735770 hits, 112 distinct targets split bank6 (76) + bank4 (36), no
+overlap -- so value-dispatch is unambiguous today (asserted in lift;
+bank-aware dispatch comes with swbank tracking). Spec committed as
+tools/lift/vec007A.txt with edge-log provenance header.
+Whole-bank bank7 regen (7 excludes, C9D2-C9D4 now kept, +VEC spec):
+912 functions, 10045 lines, 9 stubs (LC9AE now real), RC=0 zero
+warnings, 517KB object. Fixture vec_snip.s is the real entry_C9A4
+dispatcher + an LC900 inc-probe; mini spec maps C900 same-bank (returns)
+plus 8127/8AF1 cross-bank (trap). make test: 28/28 + 4/4 vec PASS
+(dispatch executes probe; unknown/default + listed cross-bank trap in
+forked children; no-spec lift fails fast). Remaining excludes: data x3,
+RAM-call, system, DEC2 cross-bank (bank-switch calls next).

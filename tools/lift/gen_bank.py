@@ -7,9 +7,13 @@ import sys, subprocess
 s_path, info_path, banknum, snip_path, out_c = sys.argv[1:6]
 banknum = int(banknum)
 excl = []
+vec_paths = []
 for e in sys.argv[6:]:
-    a, b = e.split('-')
-    excl.append((int(a, 16), int(b, 16)))
+    if e.startswith('VEC:'):
+        vec_paths.append(e[4:])
+    else:
+        a, b = e.split('-')
+        excl.append((int(a, 16), int(b, 16)))
 base = 0xC000 if banknum == 7 else 0x8000
 ranges = []
 for ln in open(info_path):
@@ -81,11 +85,12 @@ keptnames = set(nm for nm, ad, lns in kept)
 stubs = sorted(t for t in tgt if t not in keptnames)
 print('stubs:', len(stubs), stubs[:12])
 print('entries:', len(entries))
+print('vec:', vec_paths)
 out = []
 for nm, ad, lns in kept:
     out.extend(lns)
 open(snip_path, 'w').write(chr(10).join(out) + chr(10))
 el = ','.join(sorted(entries))
-r = subprocess.run(['python3', '/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/recomp/tools/lift/lift.py', snip_path, out_c, 'b%d' % banknum, el, ','.join(stubs)], capture_output=True, text=True)
+r = subprocess.run(['python3', '/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/recomp/tools/lift/lift.py', snip_path, out_c, 'b%d' % banknum, el, ','.join(stubs)] + vec_paths, capture_output=True, text=True)
 print('ELN:', len(el.split(','))); print(r.stdout[-500:]); print(r.stderr[-2000:])
 sys.exit(r.returncode)

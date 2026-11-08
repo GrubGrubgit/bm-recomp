@@ -1,0 +1,4 @@
+# mini spec for vec fixture test: VECADDR BANK TGT...
+007A 7 C900
+007A 6 8127
+007A 4 8AF1

@@ -81,12 +81,30 @@ asm_path, out_path, bank, entry_arg = sys.argv[1], sys.argv[2], sys.argv[3], sys
 stub_arg = sys.argv[5] if len(sys.argv) > 5 else ''
 stubset = set(stub_arg.split(',')) if stub_arg else set()
 entries = entry_arg.split(',')
+vec_arg = sys.argv[6] if len(sys.argv) > 6 else ''
+vecmap = {}
+if vec_arg:
+    for _vln in open(vec_arg):
+        _p = _vln.split('#', 1)[0].split()
+        if not _p:
+            continue
+        assert len(_p) >= 3, 'bad vec spec line'
+        _va, _vb = int(_p[0], 16), int(_p[1])
+        assert 0 <= _va <= 0xFFFF and _vb in (0, 1, 2, 3, 4, 5, 6, 7), 'bad vec header'
+        vecmap.setdefault(_va, []).extend([(_vb, int(_t, 16)) for _t in _p[2:]])
+def vecfn(_va):
+    return '%s_vec_%04X' % (bank, _va)
+def vectgt(_vb, _t):
+    if _t >= 0xC000:
+        return '%s_L%04X' % (bank, _t)
+    return 'b%d_L%04X' % (_vb, _t)
 
 lines = open(asm_path).read().split(chr(10))
 src_order = []
 all_labels = set()
 self_tgt = set()
 refd = set()
+vecsites = set()
 pre_cur = None
 for raw2 in lines:
     ln2 = raw2.split(';')[0]
@@ -105,7 +123,11 @@ for raw2 in lines:
         if not s2:
             continue
     p2 = s2.split(None, 1)
-    if len(p2) == 2 and (p2[0] in BR or p2[0] in ('jsr', 'jmp')):
+    if len(p2) == 2 and p2[0] == 'jmp' and p2[1].strip().startswith('('):
+        _vi = p2[1].strip()
+        assert _vi.endswith(')'), 'bad jmp indirect: ' + _vi
+        vecsites.add(int(base_of(_vi[1:-1].strip()), 16))
+    elif len(p2) == 2 and (p2[0] in BR or p2[0] in ('jsr', 'jmp')):
         if len(p2) == 2 and p2[0] in BR or (len(p2) == 2 and p2[0] == 'jmp'):
             refd.add(p2[1].strip())
         if p2[1].strip() == pre_cur and pre_cur is not None:
@@ -116,6 +138,15 @@ for e in entries:
     out.append('static void %s_%s(void);' % (bank, e))
 for e in sorted(stubset - set(entries)):
     out.append('static void %s_%s(void);' % (bank, e))
+for _va in sorted(vecsites):
+    assert _va in vecmap, 'vec site without targets: %04X' % _va
+    out.append('static void %s(void);' % vecfn(_va))
+_vtdecl = set()
+for _va in sorted(vecsites):
+    for (_vb, _t) in vecmap[_va]:
+        _vtdecl.add(vectgt(_vb, _t))
+for _n in sorted(_vtdecl):
+    out.append('static void %s(void);' % _n)
 cur = None
 found = set()
 last_op = None
@@ -255,6 +286,9 @@ for raw in lines:
     elif op == 'jsr':
         assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
         out.append('b7_%s();' % arg)
+    elif op == 'jmp' and arg.startswith('('):
+        assert arg.endswith(')'), 'bad jmp indirect: ' + arg
+        out.append('%s(); return;' % vecfn(int(base_of(arg[1:-1].strip()), 16)))
     elif op == 'jmp':
         assert arg and arg[0] not in ('$', '#', '('), 'jmp needs a plain label target: ' + arg
         if arg == cur:
@@ -279,6 +313,25 @@ if cur is not None:
     out.append('}')
 for st in sorted(stubset):
     out.append('static void %s_%s(void) { __builtin_trap(); }' % (bank, st))
+_vtdef = set()
+for _va in sorted(vecsites):
+    for (_vb, _t) in vecmap[_va]:
+        _vtdef.add(vectgt(_vb, _t))
+_defined = set(['%s_%s' % (bank, _e) for _e in entries] + ['%s_%s' % (bank, _s) for _s in stubset])
+for _n in sorted(_vtdef - _defined):
+    out.append('static void %s(void) { __builtin_trap(); }' % _n)
+for _va in sorted(vecsites):
+    out.append('static void %s(void) {' % vecfn(_va))
+    out.append('uint16_t _v = (uint16_t)(RD(0x%04X) | ((uint16_t)RD(0x%04X) << 8));' % (_va, (_va + 1) & 0xFFFF))
+    out.append('switch (_v) {')
+    _seen = set()
+    for (_vb, _t) in sorted(vecmap[_va]):
+        assert _t not in _seen, 'vec target value under two banks: %04X' % _t
+        _seen.add(_t)
+        out.append('case 0x%04X: %s(); break;' % (_t, vectgt(_vb, _t)))
+    out.append('default: __builtin_trap();')
+    out.append('}')
+    out.append('}')
 missing = [e for e in entries if e not in found and e not in stubset]
 assert not missing, 'entry labels not found: ' + ','.join(missing)
 open(out_path, 'w').write(chr(10).join(out) + chr(10))
