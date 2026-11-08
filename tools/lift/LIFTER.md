@@ -94,3 +94,18 @@ a function closes on a non-rts op. Whole-bank rule established.
 Still untested emitters: txs/tsx/dey/dec-mem/lsr-a/bvs/bvc (pattern-
 shared, fixtures pending). Next: ldy/sty/cpx/cpy + jmp-goto, then
 whole-function lifting across info Code ranges.
+
+## Round 4 group 3 (DONE 2026-11-08): loads/stores Y, compares, jumps
+New ops: ldy imm/mem, sty, cpx/cpy imm/mem, jmp (same-fn goto, self via
+top label, entry tail-call, outside-region fail-fast). Control rules
+completed: fall-through tail-call, branch-to-entry call+return,
+self-branch/jmp top labels, unreferenced labels not emitted (keeps
+-Wall clean). New fixture g3_snip.s: real D7C0 (zp,y copy loop, cpy
+exit), D7CF (cpx, self-jmp countdown), D804/D81C (bcc-to-entry call +
+fall-through, sta zp,y), LE2AB (sta (zp),y pair, sty, y-wrap path).
+make test: 28/28 PASS, all py65-oracle-agreeing. Two lifter bugs found
+by the new tests: double bank prefix on entry calls; fall-through only.
+Remaining: ror/rol full confidence (used, more fixtures welcome),
+rti/sei/cli/cld (NMI notes), undoc ALU, jmp-indirect RAM/ROM switches.
+Next: whole-function lifting across info Code ranges, then parity
+harness (lifted bank vs tracer watch diffs on tapes).

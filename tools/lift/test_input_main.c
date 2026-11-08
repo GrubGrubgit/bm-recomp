@@ -5,6 +5,7 @@
 #include "build/lifted_jsr.c"
 #include "build/lifted_trans.c"
 #include "build/lifted_arith.c"
+#include "build/lifted_g3.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
@@ -104,6 +105,39 @@ int main(void) {
     ram[0] = 0x10; ram[1] = 0x02; ram[2] = 0x04; ram[3] = 0x01;
     b7_entry_D02D();
     check(A == 0xC0 && X == 0x05 && P == 0xA4 && ram[0] == 0x04 && ram[1] == 0x0C && ram[4] == 0x04 && ram[5] == 0x00 && ram[0x4C] == 0xC0 && ram[0x4D] == 0xFB, "D02D full divide path");
+    for (int i = 0; i < 16; i++) ram[0x46+i] = (uint8_t)((i+1)*0x11);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    b7_entry_D7C0();
+    check(A == 0xEE && X == 13 && Y == 0x0E && P == 0x27 && ram[0x401] == 0x22 && ram[0x40D] == 0xEE, "D7C0 copy loop, cpy exit");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    b7_entry_D7CF();
+    check(A == 0xFF && X == 0 && P == 0xA4, "D7CF zero slot");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 5; Y = 0; S = 0xFD; P = 0x24;
+    ram[0] = 7; ram[0x405] = 0xAA; ram[0x413] = 0;
+    b7_entry_D7CF();
+    check(A == 0xFF && X == 0x13 && P == 0xA4, "D7CF cpx loop, self-jmp");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x57] = 5;
+    b7_entry_D804();
+    check(A == 0 && X == 0 && Y == 5 && P == 0x26 && ram[0x46] == 0 && ram[0x4F] == 0, "D804 bcc-taken via entry call");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0x57] = 10; ram[0xC6] = 0; ram[0x102] = 0x77;
+    b7_entry_D804();
+    check(A == 0 && X == 1 && Y == 10 && P == 0x27 && ram[0x46] == 0 && ram[0x4F] == 0 && ram[0x10B] == 0x77 && ram[0x102] == 0xFF && ram[0xC6] == 1, "D804 fallthrough, sta zp,y");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0xCD] = 5; ram[0xCE] = 0x80; ram[0xCF] = 0x02; ram[0xD0] = 0xBB; ram[0xD1] = 0xAA;
+    b7_LE2AB();
+    check(A == 0xBB && Y == 7 && P == 0x24 && ram[0xCD] == 7 && ram[0x285] == 0xAA && ram[0x286] == 0xBB, "LE2AB ind-sta pair, no wrap");
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    ram[0xCD] = 0xFE; ram[0xCE] = 0x80; ram[0xCF] = 0x02; ram[0xD0] = 0xBB; ram[0xD1] = 0xAA;
+    b7_LE2AB();
+    check(A == 0xFF && Y == 0 && P == 0xA4 && ram[0xCD] == 0 && ram[0x37E] == 0xAA && ram[0x37F] == 0xBB && ram[0x6F3] == 0xFF, "LE2AB y-wrap path, sty");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;
