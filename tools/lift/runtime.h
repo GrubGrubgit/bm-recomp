@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 uint8_t ram[0x800];
+uint8_t stk[0x100];
 uint8_t A, X, Y, S, P;
 uint8_t pad_bits;
 int pad_pos1, pad_pos2, strobe;

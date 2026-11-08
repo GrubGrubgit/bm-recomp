@@ -37,3 +37,18 @@ writes (runtime has no PPU); LE936-style NMI-spinwaits cannot run bare.
 Next: jsr-as-C-call with forward decls; target test is LE8A9-head
 (lda/sta zp, pha/pla, cmp zp, beq, 3x jsr LE914 with P1/P2 compare),
 which needs pha/pla, cmp zp, and external-callee stubs.
+
+## Round 3 (DONE 2026-11-08)
+Subroutine calls + 6502 stack: pha/pla via stk[256]+S (runtime.h), sec,
+sbc immediate with full flags (N/Z/C/V, borrow chain, 0x3C preserve),
+jsr label-target emitted as a C call (same-file via forward decls,
+cross-file via earlier TU inclusion; numeric targets fail fast).
+New fixture jsr_snip.s: real entry_E974 (pha/jsr-E996/pla countdown
+loop with sec/sbc/bne) + LE9A2 (sta 2007, effect dropped: no PPU).
+make test: 14/14 PASS, incl. E974 from A=3 ending A=0 P=0x27 Y=6
+S=0xFD (stack balanced, exact-flags check locks sbc encoding).
+Remaining branch emitters still routine-untested; cmp-zp/pha/pla now
+covered, so LE8A9-head is liftable except external-RAM-vector beq
+semantics are in-snippet already (beq LE8C2 needs its body: undoc).
+Next: parity harness (lifted bank vs tracer watch diffs on tapes);
+then whole-function lifting across info Code ranges.

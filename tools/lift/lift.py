@@ -90,6 +90,12 @@ for raw in lines:
         out.append('X = (uint8_t)(X - 1); setZN(X);')
     elif op == 'iny':
         out.append('Y = (uint8_t)(Y + 1); setZN(Y);')
+    elif op == 'pha':
+        out.append('stk[S] = A; S = (uint8_t)(S - 1);')
+    elif op == 'pla':
+        out.append('S = (uint8_t)(S + 1); A = stk[S]; setZN(A);')
+    elif op == 'sec':
+        out.append('P = (uint8_t)(P | 0x01);')
     elif op == 'stx':
         out.append(wr_of(arg, 'X'))
     elif op == 'sta':
@@ -116,6 +122,11 @@ for raw in lines:
         out.append('if (!(P & 0x80)) goto %s;' % arg)
     elif op == 'bmi':
         out.append('if (P & 0x80) goto %s;' % arg)
+    elif op == 'sbc':
+        out.append('{ uint8_t _m = %s; uint16_t _r = (uint16_t)A - _m - ((P & 1) ? 0 : 1); uint8_t _R = (uint8_t)_r; P = (uint8_t)((P & 0x3C) | (_R == 0 ? 0x02 : 0) | (_R & 0x80) | ((_r & 0x100) ? 0 : 0x01) | ((((A ^ _m) & (A ^ _R)) & 0x80) ? 0x40 : 0)); A = _R; }' % imm_of(arg))
+    elif op == 'jsr':
+        assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
+        out.append('b7_%s();' % arg)
     elif op == 'rts':
         out.append('return;')
     elif op == 'nop':

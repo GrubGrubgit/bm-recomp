@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "build/lifted_input.c"
 #include "build/lifted_misc.c"
+#include "build/lifted_jsr.c"
 static int failures = 0;
 static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
@@ -47,6 +48,12 @@ int main(void) {
     ram[0x7A] = 0x50; ram[0x7B] = 0x02; ram[0x34F] = 0x77;
     b7_entry_E996();
     check(A == 0x77 && Y == 0 && ram[0] == 0x77 && ram[0x7B] == 0x03, "E996 ind-y wrap, hi-inc");
+    memset(ram, 0, sizeof ram);
+    memset(stk, 0, sizeof stk);
+    A = 3; X = 0; Y = 5; S = 0xFD; P = 0x24;
+    ram[0x7A] = 0x50; ram[0x7B] = 0x02; ram[0x255] = 0xAB;
+    b7_entry_E974();
+    check(A == 0x00 && P == 0x27 && Y == 6 && S == 0xFD && ram[0] == 0xAB && ram[0x7B] == 0x02, "E974 jsr-loop counts 3 to 0");
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;
