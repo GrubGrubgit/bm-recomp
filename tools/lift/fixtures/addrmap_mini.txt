@@ -1,0 +1,5 @@
+# mini addrmap: ADDR BANK LABEL
+BFE5 5 entry_BFE5
+BFE8 5 entry_BFE8
+C900 7 LC900
+8127 6 entry_8127

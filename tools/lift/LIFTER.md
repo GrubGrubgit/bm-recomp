@@ -223,3 +223,52 @@ Bank5 TU: 4 excludes + xbank_b5t7 (5 refs to bank7): 91 fns, RC=0, 0 b5
 stubs. Fixture b5_snip.s (closed L839A ora-bit5 / LBEA6 and-clear-bit0);
 make test 32/32 + 9/9. work/bank6xmap.py takes BANK argv.
 Fixed lift xbank TARGET overwrite bug; fixtures regression-cover it.
+
+## Combined-TU link (DONE 2026-11-08): ADDRMAP + PROV retire xbank
+
+Cross-bank calls no longer need hand-written xbank spec files. lift.py takes
+ADDRMAP:path (lines ADDR BANK LABEL: every kept label of every lifted bank,
+built by tools/lift/gen_addr.py from the kept-group .snips; committed as
+tools/lift/ADDRMAP.txt, 1916 addrs across banks 5/6/7) and resolves
+label-form jsr/jmp-plain/branch operands by address: same-bank hits keep the
+existing local logic, cross-bank hits emit bT_name() calls with forward
+decls (unique-or-fail-fast; bank7 refs only hit single-bank addrs today).
+PROV:path (lines LABEL BANK: the union of kept labels, committed as
+tools/lift/PROV_ALL.txt) gates trap definitions: a cross/vec target whose
+(name, bank) is provided gets a decl but no trap body, so the sibling TU
+text provides the single definition. Standalone builds omit PROV and keep
+loud traps (current behavior; prov-flavored standalone .o files compile
+RC=0 with benign -Wundefined-internal notes for the decls).
+Vec target names also resolve via ADDRMAP (bank7 switch now calls real
+b6_entry_* instead of b6_L* stubs); bank4 targets (bank4 not yet lifted)
+fall back to L-form trap stubs. XBANK: is retired (fail-fast) and the
+xbank_*.txt + fixtures/xbank_mini.txt specs are deleted; fixtures use
+fixtures/addrmap_mini.txt (BFE5/8, C900, 8127; 8AF1 deliberately missing
+to cover the fallback path). C labels are C-bank-namespaced (bN_ prefix on
+label defs and goto targets) so the combined TU cannot collide.
+make test still passes with ZERO test-main changes (32/32 + 9/9).
+
+Combined TU work/combined.c concatenates the three prov-flavored TUs under
+one runtime.h (include guard): 1962 functions, compiles RC=0 with ZERO
+warnings under plain -Wall -Wextra. Transitive-closure analysis over the
+call graph from the 76 bank6 vec targets: 33 have trap-free closures
+(up to 92 fns); 41 reach bank4-fallback traps (bank4 not lifted yet).
+Parity sweep (work/parity.py driving work/smoke.c + work/smoke_oracle.py,
+zero-state, vector-dispatched through b7_vec_007A, compared against py65
+running real ROM bytes): 33/33 oracle-agreeing -- registers exact, RAM
+exact modulo stack-page jsr-residue bytes. Residue soundness is enforced, not
+assumed: the oracle logs every executed absolute/indexed/indirect-y read of
+0x0100-0x01FF plus any MMC-area write, and the driver only accepts masked
+bytes that no executed read touched (observed maxima: 10 residue bytes,
+1 stack read elsewhere, 0 MMC writes). Recipe to extend: lift bank4, append
+its snip to gen_addr.py inputs, regen ADDRMAP/PROV_ALL, regen all TUs.
+
+## Stack/absolute aliasing fix (DONE 2026-11-08, found by the sweep)
+
+The first smoke run showed 4 differing bytes (stack slots FA-FD): py65 keeps
+jsr return-address residue in 0x100-0x1FF while stk[] was a separate array.
+Worse, the split also broke real code: bank7 does absolute stack-page data
+traffic (LCACA cmp $0100,y; sta $0100,x / $010A,x), which must share cells
+with pha/pla. runtime.h now aliases: #define stk (ram + 0x100) (test-main
+and harness memsets updated to ram + 0x100). Remaining model gap G1: jsr
+is a C call so it leaves no residue -- covered by the guarded mask above.

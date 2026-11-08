@@ -49,13 +49,13 @@ build/lifted_b5.c: fixtures/b5_snip.s lift.py runtime.h
 build/test_vec: test_vec_main.c build/lifted_vec.c build/lifted_xbank.c build/lifted_ramcall.c
 > $(CC) $(CFLAGS) -I . -o build/test_vec test_vec_main.c
 
-build/lifted_vec.c: fixtures/vec_snip.s fixtures/vec007A_mini.txt lift.py runtime.h
+build/lifted_vec.c: fixtures/vec_snip.s fixtures/vec007A_mini.txt fixtures/addrmap_mini.txt lift.py runtime.h
 > mkdir -p build
-> $(LIFT) fixtures/vec_snip.s build/lifted_vec.c b7 entry_C9A4,LC9AE,LC9D3,LC900 entry_EA3A,entry_EB51 VEC:fixtures/vec007A_mini.txt
+> $(LIFT) fixtures/vec_snip.s build/lifted_vec.c b7 entry_C9A4,LC9AE,LC9D3,LC900 entry_EA3A,entry_EB51 VEC:fixtures/vec007A_mini.txt ADDRMAP:fixtures/addrmap_mini.txt
 
-build/lifted_xbank.c: fixtures/xbank_snip.s fixtures/xbank_mini.txt lift.py runtime.h
+build/lifted_xbank.c: fixtures/xbank_snip.s fixtures/addrmap_mini.txt lift.py runtime.h
 > mkdir -p build
-> $(LIFT) fixtures/xbank_snip.s build/lifted_xbank.c b7 entry_DEC2,entry_XBPB entry_DF05,entry_DF0A XBANK:fixtures/xbank_mini.txt
+> $(LIFT) fixtures/xbank_snip.s build/lifted_xbank.c b7 entry_DEC2,entry_XBPB entry_DF05,entry_DF0A ADDRMAP:fixtures/addrmap_mini.txt
 
 build/lifted_ramcall.c: fixtures/ramcall_snip.s lift.py runtime.h
 > mkdir -p build

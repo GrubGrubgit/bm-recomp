@@ -8,12 +8,17 @@ s_path, info_path, banknum, snip_path, out_c = sys.argv[1:6]
 banknum = int(banknum)
 excl = []
 vec_paths = []
-xbank_paths = []
+amap_paths = []
+prov_paths = []
 for e in sys.argv[6:]:
     if e.startswith('VEC:'):
         vec_paths.append(e[4:])
+    elif e.startswith('ADDRMAP:'):
+        amap_paths.append(e[8:])
+    elif e.startswith('PROV:'):
+        prov_paths.append(e[5:])
     elif e.startswith('XBANK:'):
-        xbank_paths.append(e[6:])
+        raise AssertionError('XBANK retired; use ADDRMAP')
     else:
         a, b = e.split('-')
         excl.append((int(a, 16), int(b, 16)))
@@ -103,13 +108,14 @@ stubs = sorted(t for t in tgt if t not in keptnames)
 print('stubs:', len(stubs), stubs[:12])
 print('entries:', len(entries))
 print('vec:', vec_paths)
-print('xbank:', xbank_paths)
+print('addrmap:', amap_paths)
+print('prov:', prov_paths)
 out = []
 for nm, ad, lns in kept:
     out.extend(lns)
 open(snip_path, 'w').write(chr(10).join(out) + chr(10))
 el = ','.join(sorted(entries))
-lift_specs = ['VEC:' + p for p in vec_paths] + ['XBANK:' + p for p in xbank_paths]
+lift_specs = ['VEC:' + p for p in vec_paths] + ['ADDRMAP:' + p for p in amap_paths] + ['PROV:' + p for p in prov_paths]
 r = subprocess.run(['python3', '/data/data/com.termux/files/home/storage/AiAgent/def7cmrvqe/recomp/tools/lift/lift.py', snip_path, out_c, 'b%d' % banknum, el, ','.join(stubs)] + lift_specs, capture_output=True, text=True)
 print('ELN:', len(el.split(','))); print(r.stdout[-500:]); print(r.stderr[-2000:])
 sys.exit(r.returncode)

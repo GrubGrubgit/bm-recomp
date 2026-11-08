@@ -33,7 +33,7 @@ static int call_traps(void (*fn)(void)) {
 }
 int main(void) {
     memset(ram, 0, sizeof ram);
-    memset(stk, 0, sizeof stk);
+    memset(ram + 0x100, 0, 0x100);
     A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
     ram[0x10] = 0;
     ram[0x7A] = 0x00; ram[0x7B] = 0xC9;

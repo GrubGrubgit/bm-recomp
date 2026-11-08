@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 uint8_t ram[0x800];
-uint8_t stk[0x100];
+#define stk (ram + 0x100)
 uint8_t prg[8][0x4000];
 uint8_t *swbank = prg[0];
 uint8_t A, X, Y, S, P;
