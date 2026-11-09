@@ -642,3 +642,25 @@ PASS, esc zero 65/65 PASS, esc snap 716/716 PASS (logs
 sweep_esc_zero_cycle.log, sweep_snap_cycle.log). Polls are inert when
 disarmed (armless + null fire fn), so zero-state/snapshot parity is
 unaffected by cycle counting.
+
+
+## Vec-gap entries seeded in disasm (DONE 2026-11-09 -- work-local inline removed)
+
+9B98/9BDB were +3-nop mid-function entries (tails of L9B95/L9BD8) reached
+only via the 007A vec dispatcher; the vec switch called trap stubs, worked
+around work-locally by inlining each tail body. Proper fix: seed both as
+descent entries (rebuild.sh bank6 +E now `A314 9B98 9BDB`; analyze.py
+auto-emits the LABELs; ROM-PARITY-OK, bank6 still 63.3pct since no new
+bytes are decoded). Every kept label is already a lift entry, so no
+lifter change was needed: pass-1 regen with old maps kept the new groups,
+gen_addr pure-added 2644->2646 (9B98/9BDB x2 files), pass-2 regen resolves
+the vec cases to real b6_entry_9B98/b6_entry_9BDB (cycle/poll-counted by
+construction; the hand-written inline bodies are deleted, trap stubs gone).
+
+Side fix (work-local sweep.py): closed_targets enumerated from the stale
+plain combined.c, so the new entries WARN-skipped; it now reads the tested
+combined_enf.c (same call graph, current bodies). Zero-state esc: 67/67
+PASS (35 bank6 incl new 9B98/9BDB masked=2 noesc + 32 bank4), no FAIL/SKIP.
+Gameplay re-verified after the change: title 28/28 EXACT, 2000-park tape3
+run bit-exact (zones all real=0, NMI histogram bit-identical), esc snap
+740/740 PASS (716 + 24 new-entry snapshot runs).

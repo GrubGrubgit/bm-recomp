@@ -1335,8 +1335,10 @@ entry_9B47 6
 entry_9B81 6
 entry_9B8B 6
 entry_9B90 6
+entry_9B98 6
 entry_9BAD 6
 entry_9BB1 6
+entry_9BDB 6
 entry_9BED 6
 entry_9BF0 6
 entry_9BF4 6
