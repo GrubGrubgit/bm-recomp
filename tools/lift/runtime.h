@@ -18,6 +18,16 @@ int pad_pos1, pad_pos2, strobe;
 int uw_abort;
 const char *uw_caller;
 const char *uw_callee;
+uint64_t cycles;
+uint16_t _cycpp;
+uint64_t nmi_next_edge;
+int nmi_armed;
+int in_nmi;
+void (*nmi_fire_fn)(void);
+uint8_t (*pad_sample_fn)(uint64_t);
+void (*nmi_log_fn)(const char *, uint64_t);
+#define CYCLES_PER_FRAME 29781
+#define VBLANK_START (29781 - 2273)
 int mmc_shift = 0, mmc_count = 0;
 uint8_t mmc_ctrl = 0x0C;
 uint8_t vram[0x800];
@@ -31,9 +41,33 @@ uint8_t scx, scy;
 int sc_latch;
 uint8_t reg2000;
 uint8_t chr0, chr1;
-static int c2002 = 0;
+
 static inline void setZN(uint8_t v) {
     P = (uint8_t)((P & 0x7D) | (v == 0 ? 0x02 : 0) | (v & 0x80));
+}
+static inline __attribute__((unused)) int in_vblank(void) {
+    return (cycles % CYCLES_PER_FRAME) >= (uint64_t)VBLANK_START;
+}
+static void nmi_fire_now(uint64_t frame, const char *site) {
+    if (pad_sample_fn) pad_bits = pad_sample_fn(frame);
+    { uint8_t sP = P;
+      uint8_t sS = S;
+      in_nmi = 1;
+      cycles += 7;
+      if (nmi_fire_fn) nmi_fire_fn();
+      in_nmi = 0;
+      if (S != sS) fprintf(stderr, "NMI-S-DRIFT %02X->%02X at %s\n", sS, S, site);
+      P = sP; }
+    if (nmi_log_fn) nmi_log_fn(site, frame);
+}
+static inline void nmi_poll(const char *site) {
+    if (!nmi_armed || !nmi_fire_fn) return;
+    if (in_nmi) return;
+    while (cycles >= nmi_next_edge) {
+        uint64_t f = nmi_next_edge / CYCLES_PER_FRAME;
+        nmi_next_edge += (uint64_t)CYCLES_PER_FRAME;
+        if (reg2000 & 0x80) nmi_fire_now(f, site);
+    }
 }
 static uint8_t ppu_memread(uint16_t a) {
     if (a < 0x2000) return 0;
@@ -68,8 +102,7 @@ static uint8_t RD(uint16_t a) {
         int r = a & 7;
         if (r == 2) {
             uint8_t v = 0;
-            if ((c2002 % 3) == 2) v |= 0x80;
-            c2002++;
+            if (in_vblank()) v |= 0xC0;
             ppu_latch = 0;
             sc_latch = 0;
             return v;
@@ -94,10 +127,12 @@ static uint8_t RD(uint16_t a) {
     }
     if (a == 0x4015) return 0;
     if (a == 0x4016) {
+        if (pad_sample_fn) pad_bits = pad_sample_fn(cycles / (uint64_t)CYCLES_PER_FRAME);
         if (pad_pos1 < 8) return (uint8_t)((pad_bits >> (pad_pos1++)) & 1);
         return 0;
     }
     if (a == 0x4017) {
+        if (pad_sample_fn) pad_bits = pad_sample_fn(cycles / (uint64_t)CYCLES_PER_FRAME);
         if (pad_pos2 < 8) return (uint8_t)((pad_bits >> (pad_pos2++)) & 1);
         return 0;
     }
@@ -120,6 +155,7 @@ static void WR(uint16_t a, uint8_t v) {
         uint16_t base = (uint16_t)v << 8;
         int i;
         for (i = 0; i < 256; i++) oam[i] = RD(base + i);
+        cycles += 512;
         return;
     }
     if (a == 0x4016) {

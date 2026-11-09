@@ -61,6 +61,12 @@ for ln in raw:
         st = ln.strip()
         if st.startswith('.'):
             print('directive dropped in %s: %s' % (cur[0], st[:40]))
+            if st.startswith('.byte'):
+                sc = ln.split(';', 1)[0].strip()
+                assert '"' not in sc and "'" not in sc, 'string directive: ' + sc[:40]
+                cur[2].append('; gap %d' % (len(sc.split(','))))
+                continue
+            assert st.startswith('.code') or st.startswith('.segment'), 'unsupported directive: ' + st[:40]
             continue
         cur[2].append(ln)
 def group_kind(lns):

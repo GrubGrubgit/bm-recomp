@@ -52,6 +52,8 @@ def split_mem(arg):
 def rd_of(arg):
     kind, base, idx = split_mem(arg)
     if kind == 'ind':
+        if idx == 'Y':
+            return 'RD((uint16_t)(_cycpp + Y))'
         return 'RD((uint16_t)(RD(%s) | ((uint16_t)RD((uint16_t)((%s + 1) & 0xFF)) << 8)) + %s)' % (base, base, idx)
     if idx is not None:
         return 'RD((uint16_t)(%s + %s))' % (base, idx)
@@ -77,6 +79,120 @@ BR = {
     'bvs': '((P & 0x40))',
     'bvc': '(!(P & 0x40))',
 }
+def labnum(nm):
+    t = nm.strip()
+    if t.startswith('entry_'): t = t[6:]
+    elif t.startswith('L'): t = t[1:]
+    else: raise AssertionError('bad label for addr: ' + nm)
+    assert len(t) == 4 and all(c in HEX for c in t), 'bad label for addr: ' + nm
+    return int(t, 16)
+def num_of_term(t):
+    t = t.strip()
+    if t.startswith('entry_'): t = t[6:]
+    elif t.startswith('L') and len(t) > 1 and all(c in HEX for c in t[1:]): t = t[1:]
+    if t.startswith('$'): return int(t[1:], 16)
+    if t.startswith('0x') or t.startswith('0X'): return int(t, 16)
+    if t.isdigit(): return int(t)
+    if len(t) == 4 and all(c in HEX for c in t): return int(t, 16)
+    return None
+def num_of_expr(e):
+    parts = re.split('([+-])', e.strip())
+    v = None
+    sgn = 1
+    for q in parts:
+        if q == '' or q.strip() == '': continue
+        if q == '+': sgn = 1; continue
+        if q == '-': sgn = -1; continue
+        n = num_of_term(q)
+        if n is None: return None
+        v = n if v is None else v + sgn * n
+        sgn = 1
+    return v
+def mem_mode(arg):
+    a = arg.strip()
+    if a.startswith('#'): return (True, None, None, None)
+    if a == 'a': return (False, 'acc', None, None)
+    if a.startswith('('):
+        j = a.find(')')
+        assert j > 0, 'bad indirect: ' + arg
+        inner = a[1:j].strip()
+        sfx = a[j+1:].strip()
+        assert sfx in (',y', ',x'), 'bad indirect suffix: ' + arg
+        return (False, 'ind', 'Y' if sfx == ',y' else 'X', num_of_expr(inner))
+    low = a.lower()
+    if low.endswith(',x'): return (False, 'idx', 'X', num_of_expr(a[:-2]))
+    if low.endswith(',y'): return (False, 'idx', 'Y', num_of_expr(a[:-2]))
+    return (False, 'dir', None, num_of_expr(a))
+LOAD_OPS = set(['lda', 'ldx', 'ldy', 'and', 'eor', 'ora', 'adc', 'sbc', 'cmp'])
+STORE_OPS = set(['sta', 'stx', 'sty'])
+RMW_OPS = set(['dec', 'inc', 'asl', 'lsr', 'rol', 'ror'])
+IMP2 = set(['tax', 'tay', 'txa', 'tya', 'tsx', 'txs', 'inx', 'dex', 'iny', 'dey', 'clc', 'sec', 'cli', 'sei', 'cld', 'nop'])
+_KNOWN_CYC = LOAD_OPS | STORE_OPS | RMW_OPS | IMP2 | set(['cpx', 'cpy', 'bit', 'pha', 'php', 'pla', 'plp'])
+def cyc_pre(op, arg):
+    if op in BR or op in ('jsr', 'jmp', 'rts', 'rti'):
+        return []
+    if op in IMP2:
+        return ['cycles += 2;']
+    if op in ('pha', 'php'):
+        return ['cycles += 3;']
+    if op in ('pla', 'plp'):
+        return ['cycles += 4;']
+    if op not in _KNOWN_CYC:
+        return []
+    if op in RMW_OPS and arg.strip() == 'a':
+        return ['cycles += 2;']
+    is_imm, kind, idx, num = mem_mode(arg)
+    if is_imm:
+        return ['cycles += 2;']
+    if num is None:
+        if kind == 'dir':
+            return ['cycles += %d;' % (5 if op in RMW_OPS else 3)]
+        if kind == 'idx':
+            if op in LOAD_OPS:
+                return ['cycles += 4;']
+            return ['cycles += %d;' % (6 if op in RMW_OPS else 4)]
+        if kind == 'ind':
+            if idx == 'X':
+                return ['cycles += 6;']
+            if op in STORE_OPS:
+                return ['cycles += 6;']
+            return ['cycles += 5;']
+        raise AssertionError('bad mode: ' + op + ' ' + arg)
+    zp = num < 0x100
+    if kind == 'dir':
+        if op in RMW_OPS:
+            return ['cycles += %d;' % (5 if zp else 6)]
+        return ['cycles += %d;' % (3 if zp else 4)]
+    if kind == 'idx':
+        if op in LOAD_OPS:
+            if zp:
+                return ['cycles += 4;']
+            return ['cycles += 4 + ((((0x%X + %s) & 0xFF00) != 0x%X) ? 1 : 0);' % (num, idx, num & 0xFF00)]
+        if op in STORE_OPS:
+            return ['cycles += %d;' % (4 if zp else 5)]
+        if op in RMW_OPS:
+            return ['cycles += %d;' % (6 if zp else 7)]
+        raise AssertionError('bad indexed op: ' + op + ' ' + arg)
+    if kind == 'ind':
+        if idx == 'X':
+            return ['cycles += 6;']
+        if op in STORE_OPS:
+            return ['cycles += 6;']
+        assert op in LOAD_OPS, 'bad (zp),y op: ' + op
+        return ['{ _cycpp = (uint16_t)(RD(0x%X) | ((uint16_t)RD((uint16_t)(((0x%X) + 1) & 0xFF)) << 8)); cycles += 5 + ((((_cycpp + Y) & 0xFF00) != (_cycpp & 0xFF00)) ? 1 : 0); }' % (num, num)]
+    raise AssertionError('bad mode: ' + op + ' ' + arg)
+def op_len(op, arg):
+    a = (arg or '').strip()
+    if a == '' or a == 'a': return 1
+    if a.startswith('#'): return 2
+    if op in BR: return 2
+    if op in ('jsr', 'jmp'): return 3
+    if a.startswith('('): return 2
+    low = a.lower()
+    base = a[:-2] if (low.endswith(',x') or low.endswith(',y')) else a
+    n = num_of_expr(base)
+    if n is None: return 2
+    return 2 if n < 0x100 else 3
 asm_path, out_path, bank, entry_arg = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 stub_arg = sys.argv[5] if len(sys.argv) > 5 else ''
 stubset = set(stub_arg.split(',')) if stub_arg else set()
@@ -234,7 +350,13 @@ for _n in sorted(_vtdecl):
 cur = None
 found = set()
 last_op = None
+cur_addr = None
 for raw in lines:
+    _rs = raw.strip()
+    if _rs.startswith('; gap '):
+        assert cur_addr is not None, 'gap before any address'
+        cur_addr += int(_rs.split()[-1])
+        continue
     ln = raw.split(';')[0]
     if not ln.strip():
         continue
@@ -242,6 +364,10 @@ for raw in lines:
     if ln[0] != ' ' and ln[0] != chr(9) and ':' in s:
         name, rest = s.split(':', 1)
         name = name.strip()
+        try:
+            cur_addr = labnum(name)
+        except AssertionError:
+            cur_addr = None
         if name in entries:
             if cur is not None:
                 if last_op not in ('rts', 'rti', 'jmp'):
@@ -254,6 +380,7 @@ for raw in lines:
             out.append('static void __attribute__((used)) %s_%s(void) {' % (bank, name))
             if name in self_tgt:
                 out.append('%s_%s_top:;' % (bank, name))
+            out.append('nmi_poll("%s_%s");' % (bank, name))
             cur = name
             found.add(name)
         else:
@@ -268,6 +395,8 @@ for raw in lines:
     last_op = parts[0]
     op = parts[0]
     arg = parts[1].strip() if len(parts) > 1 else ''
+    for _cl in cyc_pre(op, arg):
+        out.append(_cl)
     if op == 'ldx' and arg.startswith('#'):
         out.append('X = %s; setZN(X);' % imm_of(arg))
     elif op == 'ldx':
@@ -364,16 +493,22 @@ for raw in lines:
         out.append('{ uint8_t _m = %s; uint8_t _r = (uint8_t)(Y - _m); P = (uint8_t)((P & 0x7C) | (Y >= _m ? 1 : 0) | (_r == 0 ? 2 : 0) | (_r & 0x80)); }' % (imm_of(arg) if arg.startswith('#') else rd_of(arg)))
     elif op in BR:
         cond = BR[op]
+        _tgt = num_of_expr(arg)
+        _px = 0
+        if cur_addr is not None and _tgt is not None:
+            _px = 1 if (cur_addr & 0xFF00) != (_tgt & 0xFF00) else 0
+        out.append('cycles += 2;')
+        _tcyc = 'cycles += %d;' % (1 + _px)
         _xr = xresolve(arg)
         if _xr is not None:
-            out.append('if (%s) { b%d_%s(); return; }' % (cond, _xr[0], _xr[1]))
+            out.append('if (%s) { %s b%d_%s(); return; }' % (cond, _tcyc, _xr[0], _xr[1]))
         elif arg == cur:
-            out.append('if (%s) goto %s_%s_top;' % (cond, bank, cur))
+            out.append('if (%s) { %s nmi_poll("%s_%s"); goto %s_%s_top; }' % (cond, _tcyc, bank, cur, bank, cur))
         elif arg in entries or arg in stubset:
-            out.append('if (%s) { %s_%s(); return; }' % (cond, bank, arg))
+            out.append('if (%s) { %s %s_%s(); return; }' % (cond, _tcyc, bank, arg))
         else:
             assert arg in all_labels, 'branch target outside lifted regions: ' + arg
-            out.append('if (%s) goto %s_%s;' % (cond, bank, arg))
+            out.append('if (%s) { %s nmi_poll("%s_%s"); goto %s_%s; }' % (cond, _tcyc, bank, cur, bank, arg))
     elif op == 'jsr':
         assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
         _xr = xresolve(arg)
@@ -383,41 +518,67 @@ for raw in lines:
             _callee = '%s_%s' % (bank, arg)
         _caller = '%s_%s' % (bank, cur)
         if unwind_mode == 'off':
+            out.append('nmi_poll("%s");' % _caller)
+            out.append('cycles += 6;')
             out.append('S = (uint8_t)(S - 2);')
             out.append(_callee + '();')
             out.append('S = (uint8_t)(S + 2);')
+            out.append('nmi_poll("%s");' % _caller)
         elif unwind_mode == 'log':
+            out.append('nmi_poll("%s");' % _caller)
+            out.append('cycles += 6;')
             out.append('S = (uint8_t)(S - 2);')
             out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s) fprintf(stderr, ' + chr(34) + 'UNWIND caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); }')
             out.append('S = (uint8_t)(S + 2);')
+            out.append('nmi_poll("%s");' % _caller)
         elif unwind_mode in ('enforce', 'resume'):
             _rec = ('uw_caller = "' + _caller + '"; uw_callee = "' + _callee + '"; ') if unwind_mode == 'resume' else ''
+            out.append('nmi_poll("%s");' % _caller)
+            out.append('cycles += 6;')
             out.append('S = (uint8_t)(S - 2);')
             out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; ' + _rec + 'fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort) return; }')
             out.append('S = (uint8_t)(S + 2);')
+            out.append('nmi_poll("%s");' % _caller)
     elif op == 'jmp' and arg.startswith('('):
         assert arg.endswith(')'), 'bad jmp indirect: ' + arg
+        out.append('nmi_poll("%s_%s");' % (bank, cur))
+        out.append('cycles += 5;')
         out.append('%s(); return;' % vecfn(int(base_of(arg[1:-1].strip()), 16)))
     elif op == 'jmp':
         assert arg and arg[0] not in ('$', '#', '('), 'jmp needs a plain label target: ' + arg
         _xr = xresolve(arg)
         if _xr is not None:
+            out.append('nmi_poll("%s_%s");' % (bank, cur))
+            out.append('cycles += 3;')
             out.append('b%d_%s(); return;' % (_xr[0], _xr[1]))
         elif arg == cur:
+            out.append('nmi_poll("%s_%s");' % (bank, cur))
+            out.append('cycles += 3;')
             out.append('goto %s_%s_top;' % (bank, cur))
         elif arg in entries or arg in stubset:
+            out.append('nmi_poll("%s_%s");' % (bank, cur))
+            out.append('cycles += 3;')
             out.append('%s_%s(); return;' % (bank, arg))
         else:
             assert arg in all_labels, 'jmp target outside lifted regions: ' + arg
+            out.append('nmi_poll("%s_%s");' % (bank, cur))
+            out.append('cycles += 3;')
             out.append('goto %s_%s;' % (bank, arg))
     elif op == 'rts':
+        out.append('cycles += 6;')
         out.append('return;')
     elif op == 'rti':
+        out.append('cycles += 6;')
         out.append('return;')
     elif op == 'nop':
         out.append(';')
     else:
         raise AssertionError('unsupported op: ' + s)
+    if cur_addr is not None:
+        try:
+            cur_addr += op_len(op, arg)
+        except AssertionError:
+            cur_addr = None
 if cur is not None:
     if last_op not in ('rts', 'rti', 'jmp'):
         assert cur != src_order[-1], 'unterminated final entry: ' + cur

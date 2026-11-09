@@ -579,3 +579,66 @@ clean. Canonical (enforce) re-verify: make test ALL PASS, esc zero 65/65
 PASS, esc snap 716/716 PASS (logs sweep_esc_zero_A314.log,
 sweep_esc_snap_A314.log). Resume TUs differ from enforce only by the
 uw_caller/uw_callee recordings per jsr site.
+
+
+## Cycle-timed mid-compute NMIs (DONE 2026-11-09 -- dungeon RAM/VRAM exactness)
+
+Gameplay trajectory is now bit-exact vs hardware over the full 2000-park
+tape3 run: every sampled park matches with zero real diffs, NMI histogram
+identical (79 double-NMI parks + one 11-NMI park at the exact same park
+indices), no drift over 1900+ joined parks.
+
+NMI census (work/census_nmi.py on traceT3b.bin, 20M recs, 1984 parks):
+1904x1 NMI, 79x2, 1x11. The single-NMI parks all fire from the E93A/E93C
+boundary spin (already modeled); only ~80 parks take scattered mid-compute
+NMIs, from fixed-bank PCs plus one bank6 ECC0 site.
+
+Design: keep the boundary NMI, add lifted cycle counting + poll points so
+mid-compute NMIs fire nested at the correct vblank edge. Tracer reference
+counts verified: jsr/rts/rti 6, jmp abs 3, jmp ind 5, NMI entry 7, DMA
+$4014 +512 on top of the STA, php/pha 3, plp/pla 4, branches 2+1+pagecross.
+Only `.byte` directives occur in bank .s files (structural `.code` /
+`.segment` carry no bytes).
+
+Mechanism (committed): lift.py counts `cycles` per op (helpers labnum,
+num_of_expr, mem_mode, cyc_pre, op_len; (zp),Y double-read via _cycpp so
+the page-cross test sees the true base; `; gap N` markers from gen_bank.py
+keep the address counter exact across directives), +512 in the $4014 path,
++7 NMI entry in nmi_fire_now. Poll points: every function entry, every jsr
+(pre + post), every branch-taken goto, every jmp site. runtime.h
+nmi_poll fires per vblank edge crossed (while cycles >= nmi_next_edge,
+frame = edge/CPF, next_edge += CPF) when reg2000.7 is set, via
+driver-supplied nmi_fire_fn / pad_sample_fn / nmi_log_fn hooks; in_nmi
+guard preserves the nested-guard semantics. RD($2002) and RD($4016/17)
+mirror the tracer exactly (0xC0 in vblank; live per-cycle pad sampling),
+which fixed a 1-frame title lag (reset $2002 spin) and a 1-frame Start
+transient (stale latched pad_bits).
+
+Two stale-build lessons (work-local, not committed): a `-nt` poll loop
+reported BUILT from a pre-existing binary while the real build still ran,
+so one 2000-park run used a no-live-pad binary (extra title frame at
+Start, +1 E936, +1 NMI, uniform +1 index shift afterward, reconverging).
+Rebuilt + reran: deterministic (two 510-park runs byte-identical), extra
+frame gone.
+
+Driver (work-local g4_loop4.c): nmi_next_edge init, pad/frame from
+cycles/CPF, per-fire (park, frame, cycles, site) log. Escape table
+unchanged (LE3DC/E4AB -> C2AC S=FF; D697/LD6CD -> A314 S=F9).
+
+Verification (tape3): g4 done parks=2000 nmis=2089 nested=0, no
+ESC-UNKNOWN/traps/HANG/S-DRIFT. Title 28/28 EXACT-mod-stack vs the
+standard (with-NMI) reference. Zone alignment vs parksT3b.bin (rec0 is a
+frame-0 boundary snap, hence uniform off=+1 index): every sampled park in
+all six zones real=0 with equal frames, no drift. NMI-per-park histogram:
+{1:1920, 2:79, 11:1} with multi indices bit-identical to tracer (incl the
+11-NMI park 898). Sub-frame phase vs tracer at E936: within ~30 cycles
+over 15M cycles.
+
+Regen: enforce+resume TUs with cycle codegen (1050/876/96/622 groups,
+-Wall -Wextra clean; TUs grow ~90KB from cycle/poll lines); work-local
+patches re-applied (A30A catch, vec bodies with cycle/poll lines, E936
+hook anchor with cycles). Canonical (enforce) re-verify: make test ALL
+PASS, esc zero 65/65 PASS, esc snap 716/716 PASS (logs
+sweep_esc_zero_cycle.log, sweep_snap_cycle.log). Polls are inert when
+disarmed (armless + null fire fn), so zero-state/snapshot parity is
+unaffected by cycle counting.
