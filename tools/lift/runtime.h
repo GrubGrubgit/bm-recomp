@@ -26,6 +26,7 @@ int in_nmi;
 void (*nmi_fire_fn)(void);
 uint8_t (*pad_sample_fn)(uint64_t);
 void (*nmi_log_fn)(const char *, uint64_t);
+int (*uw_local_fn)(const char *, const char *, const char *);
 #define CYCLES_PER_FRAME 29781
 #define VBLANK_START (29781 - 2273)
 int mmc_shift = 0, mmc_count = 0;

@@ -664,3 +664,28 @@ PASS (35 bank6 incl new 9B98/9BDB masked=2 noesc + 32 bank4), no FAIL/SKIP.
 Gameplay re-verified after the change: title 28/28 EXACT, 2000-park tape3
 run bit-exact (zones all real=0, NMI histogram bit-identical), esc snap
 740/740 PASS (716 + 24 new-entry snapshot runs).
+
+
+## In-function resume generalized into lift.py (DONE 2026-11-09 -- work-local A30A catch deleted)
+
+The A30A->D697 work-local catch (clear abort, fall through S+=2, run A314
+in-frame) is now a lift.py rule: in UNWIND:resume mode each jsr site
+records its lexically-next call (backpatched `/*UW_NEXT*/` at function
+fall-through into entry E, only when the jsr is the final insn -- the
+last_op == 'jsr' guard skips branch-tailed functions where straight-line
+next is ambiguous). At runtime the site calls the driver hook
+uw_local_fn(uw_caller, uw_callee, next) with the RECORDED escape pair
+(first version passed the site pair and never matched -- fixed); the
+driver clears the abort and continues in-frame iff its escrow maps the
+escape to a resume whose name equals next. Otherwise (unknown escape,
+branch-tailed, enforce/off builds with null hook) it propagates exactly
+as before.
+
+Net effect on this game: the D697/LD6CD escape (resume A314 == A30A's
+fall-through) is caught at all 900+ dungeon occurrences -- zero
+D697 RESUME lines in the 2000-park log, only the game-start LE3DC row
+still root-resumes by design (its next, E3E0, differs from C2AC).
+combined_rs carries 1000+ next-annotations, enforce TU byte-identical in
+behavior (no hook). 2000-park run bit-exact (zones real=0, NMI histogram
+bit-identical, nmis=2089). Canonical: make test ALL PASS, esc zero 67/67,
+esc snap 740/740.

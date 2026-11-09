@@ -351,6 +351,7 @@ cur = None
 found = set()
 last_op = None
 cur_addr = None
+fn_sites = []
 for raw in lines:
     _rs = raw.strip()
     if _rs.startswith('; gap '):
@@ -373,6 +374,9 @@ for raw in lines:
                 if last_op not in ('rts', 'rti', 'jmp'):
                     assert cur != src_order[-1], 'unterminated entry: ' + cur
                     nx = src_order[src_order.index(cur) + 1]
+                    if fn_sites and unwind_mode == 'resume' and last_op == 'jsr':
+                        out[fn_sites[-1]] = out[fn_sites[-1]].replace('/*UW_NEXT*/', '%s_%s' % (bank, nx))
+                    fn_sites = []
                     out.append('%s_%s();' % (bank, nx))
                     out.append('return;')
                 out.append('}')
@@ -382,6 +386,7 @@ for raw in lines:
                 out.append('%s_%s_top:;' % (bank, name))
             out.append('nmi_poll("%s_%s");' % (bank, name))
             cur = name
+            fn_sites = []
             found.add(name)
         else:
             assert cur is not None, 'label outside entry: ' + s
@@ -536,7 +541,11 @@ for raw in lines:
             out.append('nmi_poll("%s");' % _caller)
             out.append('cycles += 6;')
             out.append('S = (uint8_t)(S - 2);')
-            out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; ' + _rec + 'fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort) return; }')
+            if unwind_mode == 'resume':
+                fn_sites.append(len(out))
+                out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; ' + _rec + 'fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort && !(uw_local_fn && uw_local_fn(uw_caller, uw_callee, "/*UW_NEXT*/"))) return; }')
+            else:
+                out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; ' + _rec + 'fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort) return; }')
             out.append('S = (uint8_t)(S + 2);')
             out.append('nmi_poll("%s");' % _caller)
     elif op == 'jmp' and arg.startswith('('):
@@ -583,6 +592,9 @@ if cur is not None:
     if last_op not in ('rts', 'rti', 'jmp'):
         assert cur != src_order[-1], 'unterminated final entry: ' + cur
         nx = src_order[src_order.index(cur) + 1]
+        if fn_sites and unwind_mode == 'resume' and last_op == 'jsr':
+            out[fn_sites[-1]] = out[fn_sites[-1]].replace('/*UW_NEXT*/', '%s_%s' % (bank, nx))
+        fn_sites = []
         out.append('%s_%s();' % (bank, nx))
         out.append('return;')
     out.append('}')
