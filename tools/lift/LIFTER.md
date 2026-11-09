@@ -520,3 +520,62 @@ The committed trace binary is git-ignored and rebuilt by its Makefile.
 snapshots in snaps.bin predate the do_bit fix (their P bytes have I=0);
 harmless (I is behavior-neutral in both models) but regenerate them next
 time snapshots are rebuilt.
+## G2 target-resume gameplay (DONE 2026-11-09 -- 2000-park tape3 run)
+
+Gameplay continuation past Start needed target-resume (jumping to the
+popped mid-function continuation instead of unwinding to the driver).
+
+Mechanism (committed): lift.py UNWIND:resume behaves like enforce but
+also records uw_caller/uw_callee (runtime.h gains the two globals); the
+work-local loop driver (g4_loop3.c) keeps an escape table
+caller/callee -> (resume_fn, S) and re-enters from the resume entry.
+
+Two escapes, two shapes:
+- LE3DC->E4AB (game-start, S=FD want=F7): resume b7_entry_C2AC, S=0xFF.
+  C2AC starts with txs (stack reset), so root re-entry is exact; the
+  driver resumed past game-start (620 parks, nested=0).
+- D697->LD6CD (dungeon collision, S=F7 want=F5): resume b6_entry_A314,
+  S=0xF9 (actual+2). A314 is the fall-through tail of b6_entry_A30A
+  (A30A jsr D697; A314: sta $45 ... rts), so root re-entry just runs
+  the tail and returns (DONE root-return at 1004 parks). Mid-function
+  resumes cannot work as fresh roots -- the outer C frames are lost.
+
+In-function resume (work-local patch, patch_rs_A30A_trap.py): at the
+A30A->D697 site, a propagated D697/LD6CD escape is caught instead of
+returned: clear uw_abort/caller/callee and fall through, so the normal
+S+=2 sets S=F9 and the next call runs b6_entry_A314 inside A30A's
+frame. A30A then returns to its caller with S mismatched, which the
+outer jsr site reports as a fresh escape -- chained one level per
+driver iteration until a loop top or txs entry is reached. Generic rule
+for lift.py later: if a propagated escape's resume equals the site's
+lexically-next call, handle locally (clear + continue) instead of
+returning; otherwise propagate.
+
+Vec-gap stubs 9B98/9BDB (work-local inline, patch_vec_inline.py): both
+are +3-nop mid-function entries (9B98 into L9B95, 9BDB into L9BD8;
+params 0A/4B vs 0C/4D). The vec switch called trap stubs; the patch
+inlines each tail body (skipping the 3 harmless nops) with correct
+caller names for unwind reporting. Proper fix later is seeding the two
+entries in disasm (pure-add); the inline is behavior-identical.
+
+Verification (tape3, 230-entry wander): g4 done parks=2000 nmis=1999
+nested=0, no ESC-UNKNOWN, no traps. Alignment vs tracer parksT3b.bin
+(index search +/-12): title exact at off=+1 (1 real diff = $10 lag-by-1
+plus the one pre-park NMI tick $EA-$ED at park0); overworld 2 diffs
+($10 + frame-lo footer from the +2-frame nominal/HW phase offset after
+NMI-disabled loader frames); game-start transient around parks 495-511
+(input-sample slip, reconverges); dungeon stable off=-1 with 6-10 diffs
+($10/counters, $75-77 RAM, palette 101D-101F, X reg 1029, frame footer)
+-- NMI-timing residuals (driver fires 1 boundary NMI/park; hardware
+fires mid-compute NMIs in the dungeon, sometimes 2/park), not game-logic
+divergence: offset never drifts over 1900+ joined parks. Cycle-timed
+mid-compute NMIs remain future work; not needed for trajectory parity.
+
+Disasm seed: bank6 A314 (rebuild.sh +E A314, info/prg6_auto.info label;
+ROM-PARITY-OK; bank6 63.3pct). Regen (two-pass: new snips with old maps,
+gen_addr pure-add 2643->2644, then enforce+resume regen with new maps):
+bank7 1050, bank6 876 (+A314), bank5 96, bank4 622; combined -Wall -Wextra
+clean. Canonical (enforce) re-verify: make test ALL PASS, esc zero 65/65
+PASS, esc snap 716/716 PASS (logs sweep_esc_zero_A314.log,
+sweep_esc_snap_A314.log). Resume TUs differ from enforce only by the
+uw_caller/uw_callee recordings per jsr site.

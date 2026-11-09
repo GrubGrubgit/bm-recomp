@@ -96,7 +96,7 @@ for _a in sys.argv[6:]:
     elif _a: vec_paths_in.append(_a)
 assert len(unwind_mode_in) <= 1, 'one UNWIND mode for now'
 unwind_mode = unwind_mode_in[0] if unwind_mode_in else 'off'
-assert unwind_mode in ('off', 'log', 'enforce'), 'bad UNWIND mode: ' + unwind_mode
+assert unwind_mode in ('off', 'log', 'enforce', 'resume'), 'bad UNWIND mode: ' + unwind_mode
 assert len(vec_paths_in) <= 1 and len(amap_paths_in) <= 1 and len(prov_paths_in) <= 1 and len(jtab_paths_in) <= 1, 'one spec file each for now'
 vec_arg = vec_paths_in[0] if vec_paths_in else ''
 banknum = int(bank[1:])
@@ -390,9 +390,10 @@ for raw in lines:
             out.append('S = (uint8_t)(S - 2);')
             out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s) fprintf(stderr, ' + chr(34) + 'UNWIND caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); }')
             out.append('S = (uint8_t)(S + 2);')
-        else:
+        elif unwind_mode in ('enforce', 'resume'):
+            _rec = ('uw_caller = "' + _caller + '"; uw_callee = "' + _callee + '"; ') if unwind_mode == 'resume' else ''
             out.append('S = (uint8_t)(S - 2);')
-            out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort) return; }')
+            out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; ' + _rec + 'fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort) return; }')
             out.append('S = (uint8_t)(S + 2);')
     elif op == 'jmp' and arg.startswith('('):
         assert arg.endswith(')'), 'bad jmp indirect: ' + arg

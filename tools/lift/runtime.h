@@ -16,6 +16,8 @@ uint8_t A, X, Y, S, P;
 uint8_t pad_bits;
 int pad_pos1, pad_pos2, strobe;
 int uw_abort;
+const char *uw_caller;
+const char *uw_callee;
 int mmc_shift = 0, mmc_count = 0;
 uint8_t mmc_ctrl = 0x0C;
 uint8_t vram[0x800];

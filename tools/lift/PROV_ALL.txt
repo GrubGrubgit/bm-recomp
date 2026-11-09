@@ -1398,6 +1398,7 @@ entry_A2BC 6
 entry_A2D4 6
 entry_A2E9 6
 entry_A30A 6
+entry_A314 6
 entry_A347 6
 entry_A34D 6
 entry_A350 6
