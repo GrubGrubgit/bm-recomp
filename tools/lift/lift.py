@@ -277,6 +277,8 @@ def xresolve(lbl):
     if a is None: return None
     if (a, banknum) in amap: return None
     if a in slots: a = slots[a]
+    if banknum != 7 and 0x8000 <= a < 0xC000 and (a, banknum) not in amap:
+        return None
     hits = [(b, n) for ((aa, b), n) in amap.items() if aa == a]
     if not hits: return None
     assert len(hits) == 1, 'ambiguous addrmap addr: ' + lbl
