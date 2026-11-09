@@ -92,8 +92,8 @@ def num_of_term(t):
     elif t.startswith('L') and len(t) > 1 and all(c in HEX for c in t[1:]): t = t[1:]
     if t.startswith('$'): return int(t[1:], 16)
     if t.startswith('0x') or t.startswith('0X'): return int(t, 16)
-    if t.isdigit(): return int(t)
     if len(t) == 4 and all(c in HEX for c in t): return int(t, 16)
+    if t.isdigit(): return int(t)
     return None
 def num_of_expr(e):
     parts = re.split('([+-])', e.strip())
@@ -165,10 +165,12 @@ def cyc_pre(op, arg):
         return ['cycles += %d;' % (3 if zp else 4)]
     if kind == 'idx':
         if op in LOAD_OPS:
-            if zp:
+            if zp and (idx == 'X' or op in ('ldx', 'stx')):
                 return ['cycles += 4;']
             return ['cycles += 4 + ((((0x%X + %s) & 0xFF00) != 0x%X) ? 1 : 0);' % (num, idx, num & 0xFF00)]
         if op in STORE_OPS:
+            if op == 'sta' and idx == 'Y':
+                return ['cycles += 5;']
             return ['cycles += %d;' % (4 if zp else 5)]
         if op in RMW_OPS:
             return ['cycles += %d;' % (6 if zp else 7)]
@@ -192,6 +194,8 @@ def op_len(op, arg):
     base = a[:-2] if (low.endswith(',x') or low.endswith(',y')) else a
     n = num_of_expr(base)
     if n is None: return 2
+    if low.endswith(',y') and n < 0x100 and op in ('sta', 'lda', 'cmp', 'and', 'eor', 'ora', 'adc', 'sbc'):
+        return 3
     return 2 if n < 0x100 else 3
 asm_path, out_path, bank, entry_arg = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 stub_arg = sys.argv[5] if len(sys.argv) > 5 else ''
