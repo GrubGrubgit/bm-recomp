@@ -614,6 +614,8 @@ mirror the tracer exactly (0xC0 in vblank; live per-cycle pad sampling),
 which fixed a 1-frame title lag (reset $2002 spin) and a 1-frame Start
 transient (stale latched pad_bits).
 
+Small-base ,y rule (fixed 2026-11-09): the 6502 has no zp,Y form for STA/LDA/CMP/AND/EOR/ORA/ADC/SBC, so a small base with ,y is always absolute (3 bytes): STA costs 5, loads/ALU cost 4 plus page-cross. LDX/STX keep zp,Y; every small ,x site confirmed zp by ROM-opcode census (all 59 small-base indexed sites checked; 8 STA abs,Y + 5 LDA abs,Y corrected). cyc_pre/op_len encode this; gameplay bit-exact to 11400 parks.
+
 Two stale-build lessons (work-local, not committed): a `-nt` poll loop
 reported BUILT from a pre-existing binary while the real build still ran,
 so one 2000-park run used a no-live-pad binary (extra title frame at
