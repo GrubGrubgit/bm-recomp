@@ -124,6 +124,7 @@ def mem_mode(arg):
     if low.endswith(',y'): return (False, 'idx', 'Y', num_of_expr(a[:-2]))
     return (False, 'dir', None, num_of_expr(a))
 LOAD_OPS = set(['lda', 'ldx', 'ldy', 'and', 'eor', 'ora', 'adc', 'sbc', 'cmp'])
+LOAD_SWAP_OPS = LOAD_OPS | set(['bit', 'cpx', 'cpy'])
 STORE_OPS = set(['sta', 'stx', 'sty'])
 RMW_OPS = set(['dec', 'inc', 'asl', 'lsr', 'rol', 'ror'])
 IMP2 = set(['tax', 'tay', 'txa', 'tya', 'tsx', 'txs', 'inx', 'dex', 'iny', 'dey', 'clc', 'sec', 'cli', 'sei', 'cld', 'nop'])
@@ -181,7 +182,8 @@ def cyc_pre(op, arg):
         if op in STORE_OPS:
             return ['cycles += 6;']
         assert op in LOAD_OPS, 'bad (zp),y op: ' + op
-        return ['{ _cycpp = (uint16_t)(RD(0x%X) | ((uint16_t)RD((uint16_t)(((0x%X) + 1) & 0xFF)) << 8)); cycles += 5 + ((((_cycpp + Y) & 0xFF00) != (_cycpp & 0xFF00)) ? 1 : 0); }' % (num, num)]
+        return ['{ _cycpp = (uint16_t)(RD(0x%X) | ((uint16_t)RD((uint16_t)(((0x%X) + 1) & 0xFF)) << 8)); }' % (num, num),
+                'cycles += 5 + ((((_cycpp + Y) & 0xFF00) != (_cycpp & 0xFF00)) ? 1 : 0);']
     raise AssertionError('bad mode: ' + op + ' ' + arg)
 def op_len(op, arg):
     a = (arg or '').strip()
@@ -406,8 +408,8 @@ for raw in lines:
     last_op = parts[0]
     op = parts[0]
     arg = parts[1].strip() if len(parts) > 1 else ''
-    for _cl in cyc_pre(op, arg):
-        out.append(_cl)
+    _cls = cyc_pre(op, arg)
+    _body0 = len(out)
     if op == 'ldx' and arg.startswith('#'):
         out.append('X = %s; setZN(X);' % imm_of(arg))
     elif op == 'ldx':
@@ -507,7 +509,7 @@ for raw in lines:
         _tgt = num_of_expr(arg)
         _px = 0
         if cur_addr is not None and _tgt is not None:
-            _px = 1 if (cur_addr & 0xFF00) != (_tgt & 0xFF00) else 0
+            _px = 1 if ((cur_addr + 2) & 0xFF00) != (_tgt & 0xFF00) else 0  # HW compares (PC+2) page, not opcode page (branch at XXFF)
         out.append('cycles += 2;')
         _tcyc = 'cycles += %d;' % (1 + _px)
         _xr = xresolve(arg)
@@ -589,6 +591,17 @@ for raw in lines:
         out.append(';')
     else:
         raise AssertionError('unsupported op: ' + s)
+    _body = out[_body0:]
+    del out[_body0:]
+    if op in LOAD_SWAP_OPS and not arg.startswith('#'):
+        _fetch = [c for c in _cls if '_cycpp =' in c]
+        _rest = [c for c in _cls if '_cycpp =' not in c]
+        out.extend(_fetch)
+        out.extend(_body)
+        out.extend(_rest)
+    else:
+        out.extend(_cls)
+        out.extend(_body)
     if cur_addr is not None:
         try:
             cur_addr += op_len(op, arg)

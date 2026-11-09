@@ -698,3 +698,41 @@ TU policy for dark code: lift the coherent cluster with gen_bank excludes for da
 xresolve window rule (lift.py): for banknum 0-6, a 0x8000-0xBFFF target with no same-bank amap entry resolves to None (trap). Rationale: with bank B mapped, jsr $8xxx always runs bank B's bytes; a dropped same-bank group means data/undoc, and falling through to another bank's same-named code is silent wrong-bank execution (observed: bank0 LB2C1/L93BB -> real bank6 code). Bank7 is exempt (its window is C000-FFFF; DEC2-to-BFE5/BFE8/BFF1 cross-bank intent is established by traces). Cross-call census (xcensus.py) confirmed all other TUs unaffected.
 Regen recipe v5 (current): pass1 bank0 with old maps, gen_addr over 5 snips (pure-add check), pass2 all five banks in enforce + resume modes, combined_enf/combined_rs links, smoke rebuilds; re-verify make test + esc zero + esc snap + gameplay (2000-park NMI/zones) + title before commit.
 Remaining dark regions (documented, not lifted): bank1 (single jmp-in-data, BRK-verified), bank2/3 BF53 (family copies calling JAM/slide data -- dead variants), bank0 8080/BFE5/BFF1 (data). Boss/area-4/6 execution remains unreached -- no blind tapes; a directed deep-dungeon run with position feedback is the next hunt if boss coverage is wanted.
+## Small-base ,y is always absolute (DONE 2026-11-09 -- LD981 -10/row)
+
+The 6502 has no zp,Y form for STA/LDA/CMP/AND/EOR/ORA/ADC/SBC (only LDX has zp,Y; STX has zp,Y but no abs,Y).
+A small base with ,y is ALWAYS absolute (3 bytes, abs,Y timing). The lifter treated small-base ,y
+stores/loads as zero-page: the LD981 copy loop (`sta $25,y`, 10 iters/row) was charged 4 instead of 5
+cycles/iter = -10 per DC-row (found by $2000-write watch + $06-span analysis: exactly 10 short per row,
+call counts matching; ROM proof D983 = `99 25 00` = STA abs,Y). Census of all 59 small-base indexed sites
+in the 5 snips vs ROM opcodes: 8 STA abs,Y + 5 LDA abs,Y sites wrong; every small ,x confirmed zp;
+`stx $EA,y` confirmed zp,Y (0x96); `L0000,x` confirmed zp. Fix: `sta ,y` always 5 cycles;
+LDA-family zp+Y uses the abs cross-page formula; op_len returns 3 for sta/lda/cmp/and/eor/ora/adc/sbc
+small ,y. RD/WR addresses unchanged.
+## Sample-after-charge: loads read before charging cycles (DONE 2026-11-09 -- reset-phase -2)
+
+The tracer samples memory (RD) BEFORE charging the instruction's cycles; the lifter emitted
+`cycles += N; RD(addr)`. For straight-line code the totals match, but observable timing differs at
+polling edges: the PPU-warmup double spin (LF250/LF255 `lda $2002 / bpl`) exits one iteration
+later/earlier depending on order, worth -7 cycles here. Combined with the unmodeled 9-cycle reset
+fetch (FFF4 INC + FFF7 JMP F23B; reset vector FFFC=FFF4 -- G started cycles=0 at b7_entry_F23B,
+skipping 9 cycles), the boot entry offset was a flat -2 (proven by HIT-vs-proftrace boot pairing,
+4550 pairs, flat deltas; the +5 advance-mean was a logger artifact: phaseG stamps G4_advance =
+E936 entry + 5). Fix: LOAD_SWAP_OPS (LOAD_OPS + bit/cpx/cpy) emit the body before the charge;
+pointer-fetch `_cycpp` line of (zp),y stays first; stores/RMW untouched (order-irrelevant); +9 reset
+cycles modeled (`cycles = 9` at driver init). Boot pairing flat +0 over 4550 pairs after both.
+## Branch page-cross compares (PC+2), not the opcode address (DONE 2026-11-09 -- 17 sites, D418 -1/group)
+
+Hardware charges a taken branch +1 iff the TARGET page differs from the (PC+2) page, where PC+2 is
+the address after the 2-byte branch instruction. The lifter compared the OPCODE address page
+(cur_addr) with the target page. These differ only when the branch opcode sits at XXFF (last byte
+of a page): then cur_addr is in page XX but PC+2 is in page XX+1. Consequences, both directions:
+overcharge (+1) for forward branches at XXFF into page XX+1 (e.g. BEQ D3FF->D418: opcode D3FF page D3
+vs target D4 claimed cross; PC+2=D401 page D4 = no cross; G charged 4, HW 3 -- this was the
+measured -1-per-D418-group: 3 groups/park = -3/park for G in the D418 segment); undercharge (-1)
+for backward branches at XXFF back into page XX (e.g. BMI F6FF->F6F8 loop: claimed no-cross, true
+cross since PC+2=F701 is page F7). Fix (lift.py + lift_g4.py, identical one line):
+`_px = 1 if ((cur_addr + 2) & 0xFF00) != (_tgt & 0xFF00) else 0`.
+Regen diff is exactly the affected sites (bank7t 7, bank6 6, bank4 4, banks 5/0 clean -- 17 sites:
+16 overcharges + 1 undercharge), ROM-verified at both exemplars. Full 22800-park run bit-exact
+(22748 common frames, 0 differing; E936 deltas within +-100 everywhere; 0 HW NMI frames missing).
