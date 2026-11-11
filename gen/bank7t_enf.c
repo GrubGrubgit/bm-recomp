@@ -371,6 +371,7 @@ static void b7_LEB2A(void);
 static void b7_LEB4E(void);
 static void b7_LEB57(void);
 static void b7_LEB8D(void);
+static void b7_LEB91(void);
 static void b7_LEB98(void);
 static void b7_LEB9F(void);
 static void b7_LEBB0(void);
@@ -934,6 +935,7 @@ static void b7_entry_EB51(void);
 static void b7_entry_EB71(void);
 static void b7_entry_EB7E(void);
 static void b7_entry_EB8A(void);
+static void b7_entry_EB97(void);
 static void b7_entry_EBA9(void);
 static void b7_entry_EBC3(void);
 static void b7_entry_EC34(void);
@@ -1048,7 +1050,6 @@ static void b7_entry_FCBC(void);
 static void b7_entry_FCE1(void);
 static void b7_entry_FFF4(void);
 static void b7_L0000(void);
-static void b7_LEB91(void);
 static void b5_entry_BFE5(void);
 static void b5_entry_BFE8(void);
 static void b5_entry_BFF1(void);
@@ -15204,7 +15205,27 @@ cycles += 2;
 A = 0x20; setZN(A);
 cycles += 3;
 WR(0x12, A);
-b7_LEB98();
+b7_LEB91();
+return;
+}
+static void __attribute__((used)) b7_LEB91(void) {
+nmi_poll("b7_LEB91");
+cycles += 4;
+S = (uint8_t)(S + 1); A = stk[S]; setZN(A);
+cycles += 2;
+Y = A; setZN(Y);
+cycles += 4;
+S = (uint8_t)(S + 1); A = stk[S]; setZN(A);
+cycles += 2;
+X = A; setZN(X);
+cycles += 4;
+S = (uint8_t)(S + 1); A = stk[S]; setZN(A);
+cycles += 6;
+return;
+}
+static void __attribute__((used)) b7_entry_EB97(void) {
+nmi_poll("b7_entry_EB97");
+cycles += 6;
 return;
 }
 static void __attribute__((used)) b7_LEB98(void) {
@@ -20797,7 +20818,6 @@ cycles += 3;
 b7_entry_F23B(); return;
 }
 static void b7_L0000(void) { __builtin_trap(); }
-static void b7_LEB91(void) { __builtin_trap(); }
 static void b7_vec_007A(void) {
 uint16_t _v = (uint16_t)(RD(0x007A) | ((uint16_t)RD(0x007B) << 8));
 switch (_v) {

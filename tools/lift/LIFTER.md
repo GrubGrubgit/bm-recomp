@@ -751,3 +751,14 @@ dark-family data callees, callers zero-exec). Dark regions: bank1 8630
 (jmp-into-data). No engine change; bosses/late areas are lifted but
 unplayed (frontend L7 covers with real input). APU capture is L2 adapter
 work (event log from the NES APU spec + bank5 TU), not re-lifting.
+
+## Static completion (2026-11-11 -- no traces used)
+Bank7t regen without the EB96-EB97 exclude: kept groups 1048->1050, entries
+1050. LEB91 is now real lifted code (pla/tay/pla/tax/pla/rti restore tail;
+LEB8D falls through into it) and entry_EB97 is real lifted code (single rti;
+the hardware IRQ vector, ROM vectors NMI=EB7E RST=FFF4 IRQ=EB97). Traps in
+the combined TU drop 8->7 (b7_L0000, vec default, b5_entry_B2C5,
+b0_L93BB/LB2C1/LB2F3/LB310). Totals 1050/878/96/622/20 = 2666/2666 ADDRMAP.
+Combined 1.8MB gcc -O0 -Wall -Wextra clean. Maps unchanged (gen_addr 2666).
+Bosses and late areas remain lifted-but-unplayed; frontend L7 covers them
+with real input, no trace logging.
