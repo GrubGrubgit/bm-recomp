@@ -736,3 +736,18 @@ cross since PC+2=F701 is page F7). Fix (lift.py + lift_g4.py, identical one line
 Regen diff is exactly the affected sites (bank7t 7, bank6 6, bank4 4, banks 5/0 clean -- 17 sites:
 16 overcharges + 1 undercharge), ROM-verified at both exemplars. Full 22800-park run bit-exact
 (22748 common frames, 0 differing; E936 deltas within +-100 everywhere; 0 HW NMI frames missing).
+
+## Tape-free completion verdicts (2026-11-11 -- no traces used)
+Static census from committed `disasm/asm/` + single-byte ROM reads:
+Code ranges prg0:12 prg1:1 prg2:1 prg3:3 prg4:100 prg5:9 prg6:108 prg7:107.
+Combined TU carries 8 `__builtin_trap` sites, each with a static verdict:
+b7_L0000 + vec-dispatch default (unreachable by construction, zero hits in
+22800-park runs); b7_LEB91 (NMI-return tail; sole static caller EB8A sits
+past a never-returning jsr LEB98, taken path falls through from LEB8D);
+b5_entry_B2C5 (bank5-window data; the 9 prg4.s `jsr B2C5` callers resolve
+same-bank to the real b4_entry_B2C5); b0_L93BB/LB2C1/LB2F3/LB310 (bank0
+dark-family data callees, callers zero-exec). Dark regions: bank1 8630
+(zero callers), bank2/3 BF53 (zero callers each), bank0 8080/BFE5/BFF1
+(jmp-into-data). No engine change; bosses/late areas are lifted but
+unplayed (frontend L7 covers with real input). APU capture is L2 adapter
+work (event log from the NES APU spec + bank5 TU), not re-lifting.
