@@ -19,6 +19,20 @@ static uint8_t oam_addr;
 static uint8_t scx, scy;
 static uint8_t chr0, chr1;
 static int sc_latch;
+static inline int vram_phys(uint16_t a) {
+  uint16_t b = a;
+  if (b >= 0x3000) b -= 0x1000;
+  b -= 0x2000;
+  int nt = (b >> 10) & 3;
+  int off = b & 0x3FF;
+  int mir = mmc_ctrl & 3;
+  int phys;
+  if (mir == 0) phys = 0;
+  else if (mir == 1) phys = 1;
+  else if (mir == 2) phys = (nt & 1);
+  else phys = (nt >> 1);
+  return phys * 0x400 + off;
+}
 static uint8_t ppu_memread(uint16_t a) {
   if (a < 0x2000) return chrdata[a & 0x1FFFF];
   if (a >= 0x3F00) {
@@ -26,10 +40,7 @@ static uint8_t ppu_memread(uint16_t a) {
     if ((idx & 3) == 0) idx &= 0x0F;
     return pal[idx];
   }
-  if (a >= 0x3000) a -= 0x1000;
-  a -= 0x2000;
-  if (a >= 0x800) a -= 0x400;
-  return vram[a & 0x7FF];
+  return vram[vram_phys(a)];
 }
 static void ppu_memwrite(uint16_t a, uint8_t v) {
   if (a < 0x2000) return;
@@ -39,10 +50,7 @@ static void ppu_memwrite(uint16_t a, uint8_t v) {
     pal[idx] = v;
     return;
   }
-  if (a >= 0x3000) a -= 0x1000;
-  a -= 0x2000;
-  if (a >= 0x800) a -= 0x400;
-  vram[a & 0x7FF] = v;
+  vram[vram_phys(a)] = v;
 }
 static uint8_t oam[0x100];
 
@@ -83,7 +91,7 @@ static uint8_t mem_rd(uint16_t a) {
     int r = a & 7;
     if (r == 2) {
       uint8_t v = 0;
-      if (in_vblank()) v |= 0xC0;
+      if (in_vblank()) v |= 0x80;
       ppu_latch = 0;
       sc_latch = 0;
       return v;

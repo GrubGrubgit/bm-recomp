@@ -42,6 +42,8 @@ uint8_t scx, scy;
 int sc_latch;
 uint8_t reg2000;
 uint8_t chr0, chr1;
+uint8_t reg2001;
+uint8_t pad_latch1, pad_latch2;
 
 static inline void setZN(uint8_t v) {
     P = (uint8_t)((P & 0x7D) | (v == 0 ? 0x02 : 0) | (v & 0x80));
@@ -70,6 +72,20 @@ static inline void nmi_poll(const char *site) {
         if (reg2000 & 0x80) nmi_fire_now(f, site);
     }
 }
+static inline int vram_phys(uint16_t a) {
+    uint16_t b = a;
+    if (b >= 0x3000) b -= 0x1000;
+    b -= 0x2000;
+    int nt = (b >> 10) & 3;
+    int off = b & 0x3FF;
+    int mir = mmc_ctrl & 3;
+    int phys;
+    if (mir == 0) phys = 0;
+    else if (mir == 1) phys = 1;
+    else if (mir == 2) phys = (nt & 1);
+    else phys = (nt >> 1);
+    return phys * 0x400 + off;
+}
 static uint8_t ppu_memread(uint16_t a) {
     if (a < 0x2000) return 0;
     if (a >= 0x3F00) {
@@ -77,10 +93,7 @@ static uint8_t ppu_memread(uint16_t a) {
         if ((idx & 3) == 0) idx &= 0x0F;
         return pal[idx];
     }
-    if (a >= 0x3000) a -= 0x1000;
-    a -= 0x2000;
-    if (a >= 0x800) a -= 0x400;
-    return vram[a & 0x7FF];
+    return vram[vram_phys(a)];
 }
 static void ppu_memwrite(uint16_t a, uint8_t v) {
     if (a < 0x2000) return;
@@ -90,10 +103,7 @@ static void ppu_memwrite(uint16_t a, uint8_t v) {
         pal[idx] = v;
         return;
     }
-    if (a >= 0x3000) a -= 0x1000;
-    a -= 0x2000;
-    if (a >= 0x800) a -= 0x400;
-    vram[a & 0x7FF] = v;
+    vram[vram_phys(a)] = v;
 }
 static uint8_t RD(uint16_t a) {
     if (a >= 0xC000) return prg[7][a - 0xC000];
@@ -103,7 +113,7 @@ static uint8_t RD(uint16_t a) {
         int r = a & 7;
         if (r == 2) {
             uint8_t v = 0;
-            if (in_vblank()) v |= 0xC0;
+            if (in_vblank()) v |= 0x80;
             ppu_latch = 0;
             sc_latch = 0;
             return v;
@@ -128,13 +138,16 @@ static uint8_t RD(uint16_t a) {
     }
     if (a == 0x4015) return 0;
     if (a == 0x4016) {
-        if (pad_sample_fn) pad_bits = pad_sample_fn(cycles / (uint64_t)CYCLES_PER_FRAME);
-        if (pad_pos1 < 8) return (uint8_t)((pad_bits >> (pad_pos1++)) & 1);
+        if (strobe) {
+            if (pad_sample_fn) { uint8_t live = pad_sample_fn(cycles / (uint64_t)CYCLES_PER_FRAME); return live & 1; }
+            return pad_latch1 & 1;
+        }
+        if (pad_pos1 < 8) return (uint8_t)((pad_latch1 >> (pad_pos1++)) & 1);
         return 0;
     }
     if (a == 0x4017) {
-        if (pad_sample_fn) pad_bits = pad_sample_fn(cycles / (uint64_t)CYCLES_PER_FRAME);
-        if (pad_pos2 < 8) return (uint8_t)((pad_bits >> (pad_pos2++)) & 1);
+        if (strobe) return 0;
+        if (pad_pos2 < 8) return (uint8_t)((pad_latch2 >> (pad_pos2++)) & 1);
         return 0;
     }
     return 0;
@@ -144,7 +157,7 @@ static void WR(uint16_t a, uint8_t v) {
     if (a < 0x4000) {
         int r = a & 7;
         if (r == 0) reg2000 = v;
-        else if (r == 1) { }
+        else if (r == 1) reg2001 = v;
         else if (r == 3) oam_addr = v;
         else if (r == 4) oam[oam_addr++] = v;
         else if (r == 5) { if (!sc_latch) scx = v; else scy = v; sc_latch ^= 1; }
@@ -160,9 +173,12 @@ static void WR(uint16_t a, uint8_t v) {
         return;
     }
     if (a == 0x4016) {
-        if ((strobe == 0) && (v & 1)) { pad_pos1 = 0; pad_pos2 = 0; }
+        if (v & 1) {
+            pad_pos1 = 0; pad_pos2 = 0;
+            if (pad_sample_fn) { uint64_t f = cycles / (uint64_t)CYCLES_PER_FRAME; uint8_t live = pad_sample_fn(f); pad_latch1 = live; pad_latch2 = 0; pad_bits = live; }
+            else { pad_latch1 = 0; pad_latch2 = 0; }
+        }
         strobe = v & 1;
-        if (strobe) { pad_pos1 = 0; pad_pos2 = 0; }
         return;
     }
     if (a == 0x4017) return;
