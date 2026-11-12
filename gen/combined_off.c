@@ -1263,6 +1263,7 @@ static void b4_entry_920E(void);
 static void b4_entry_923F(void);
 static void b4_entry_92AF(void);
 static void b4_entry_9340(void);
+static void b4_entry_9347(void);
 static void b4_entry_934A(void);
 static void b4_entry_96F1(void);
 static void b4_entry_970C(void);
@@ -21034,6 +21035,7 @@ case 0x920E: b4_entry_920E(); break;
 case 0x923F: b4_entry_923F(); break;
 case 0x92AF: b4_entry_92AF(); break;
 case 0x9340: b4_entry_9340(); break;
+case 0x9347: b4_entry_9347(); break;
 case 0x934A: b4_entry_934A(); break;
 case 0x96F1: b4_entry_96F1(); break;
 case 0x970C: b4_entry_970C(); break;
@@ -22044,6 +22046,7 @@ static void b4_entry_92B6(void);
 static void b4_entry_9329(void);
 static void b4_entry_9333(void);
 static void b4_entry_9340(void);
+static void b4_entry_9347(void);
 static void b4_entry_934A(void);
 static void b4_entry_9356(void);
 static void b4_entry_939C(void);
@@ -24703,6 +24706,12 @@ cycles += 5;
 { uint8_t _v = (uint8_t)(RD(0x46) + 1); WR(0x46, _v); setZN(_v); }
 cycles += 6;
 return;
+}
+static void __attribute__((used)) b4_entry_9347(void) {
+nmi_poll("b4_entry_9347");
+nmi_poll("b4_entry_9347");
+cycles += 3;
+b4_entry_9356(); return;
 }
 static void __attribute__((used)) b4_entry_934A(void) {
 nmi_poll("b4_entry_934A");
