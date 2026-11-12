@@ -375,6 +375,7 @@
 8FA2 4 entry_8FA2
 8FB6 4 L8FB6
 8FB8 4 entry_8FB8
+8FC0 4 entry_8FC0
 8FC3 4 entry_8FC3
 8FCE 4 entry_8FCE
 8FD1 4 entry_8FD1
