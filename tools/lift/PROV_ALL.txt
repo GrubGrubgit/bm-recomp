@@ -399,6 +399,7 @@ entry_8B29 4
 entry_8B99 4
 entry_8BA4 4
 entry_8BCF 4
+entry_8BE2 4
 entry_8BE5 4
 entry_8BE8 4
 entry_8BEF 4

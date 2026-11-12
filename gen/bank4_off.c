@@ -380,6 +380,7 @@ static void b4_entry_8B29(void);
 static void b4_entry_8B99(void);
 static void b4_entry_8BA4(void);
 static void b4_entry_8BCF(void);
+static void b4_entry_8BE2(void);
 static void b4_entry_8BE5(void);
 static void b4_entry_8BE8(void);
 static void b4_entry_8BEF(void);
@@ -958,6 +959,11 @@ nmi_poll("b4_entry_8BCF");
 nmi_poll("b4_entry_8BCF");
 cycles += 3;
 b4_entry_8C16(); return;
+}
+static void __attribute__((used)) b4_entry_8BE2(void) {
+nmi_poll("b4_entry_8BE2");
+cycles += 6;
+return;
 }
 static void __attribute__((used)) b4_entry_8BE5(void) {
 nmi_poll("b4_entry_8BE5");

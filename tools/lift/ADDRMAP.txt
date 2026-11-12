@@ -267,6 +267,7 @@
 8BA7 6 entry_8BA7
 8BC8 6 entry_8BC8
 8BCF 4 entry_8BCF
+8BE2 4 entry_8BE2
 8BE5 4 entry_8BE5
 8BE8 4 entry_8BE8
 8BEF 4 entry_8BEF
