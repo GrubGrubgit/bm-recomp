@@ -1008,6 +1008,7 @@ L9FA8 6
 L9FD1 6
 LA019 6
 LA073 6
+LA0E5 6
 LA0E8 6
 LA10A 6
 LA115 6
@@ -1396,6 +1397,7 @@ entry_9F87 6
 entry_A009 6
 entry_A02C 6
 entry_A063 6
+entry_A0B9 6
 entry_A0C8 6
 entry_A0F9 6
 entry_A11C 6
@@ -1528,6 +1530,7 @@ entry_AE49 6
 entry_AF03 6
 entry_AFD1 6
 entry_B04B 6
+entry_B118 6
 entry_B11A 6
 entry_B13B 6
 entry_B171 6
@@ -2015,7 +2018,7 @@ LEF8B 7
 LEFEC 7
 LF009 7
 LF01C 7
-LF029 7
+entry_F029 7
 LF02F 7
 LF04B 7
 LF058 7
