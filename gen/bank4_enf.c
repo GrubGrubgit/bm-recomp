@@ -437,6 +437,7 @@ static void b4_entry_9347(void);
 static void b4_entry_934A(void);
 static void b4_entry_9356(void);
 static void b4_entry_938B(void);
+static void b4_entry_9395(void);
 static void b4_entry_939C(void);
 static void b4_entry_93BD(void);
 static void b4_entry_944C(void);
@@ -3196,6 +3197,12 @@ cycles += 5;
 { uint8_t _v = (uint8_t)(RD(0x46) + 1); WR(0x46, _v); setZN(_v); }
 cycles += 6;
 return;
+}
+static void __attribute__((used)) b4_entry_9395(void) {
+nmi_poll("b4_entry_9395");
+nmi_poll("b4_entry_9395");
+cycles += 3;
+b4_entry_939C(); return;
 }
 static void __attribute__((used)) b4_entry_939C(void) {
 nmi_poll("b4_entry_939C");
