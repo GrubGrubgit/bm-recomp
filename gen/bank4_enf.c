@@ -479,6 +479,7 @@ static void b4_entry_99BB(void);
 static void b4_entry_99CA(void);
 static void b4_entry_9A2B(void);
 static void b4_entry_9A80(void);
+static void b4_entry_9A8B(void);
 static void b4_entry_9A8E(void);
 static void b4_entry_9AB6(void);
 static void b4_entry_9B0E(void);
@@ -5391,6 +5392,12 @@ cycles += 3;
 WR(0x50, A);
 cycles += 6;
 return;
+}
+static void __attribute__((used)) b4_entry_9A8B(void) {
+nmi_poll("b4_entry_9A8B");
+nmi_poll("b4_entry_9A8B");
+cycles += 3;
+b4_entry_9AB6(); return;
 }
 static void __attribute__((used)) b4_entry_9A8E(void) {
 nmi_poll("b4_entry_9A8E");
