@@ -1265,6 +1265,7 @@ static void b4_entry_92AF(void);
 static void b4_entry_9340(void);
 static void b4_entry_9347(void);
 static void b4_entry_934A(void);
+static void b4_entry_938B(void);
 static void b4_entry_96F1(void);
 static void b4_entry_970C(void);
 static void b4_entry_970F(void);
@@ -21037,6 +21038,7 @@ case 0x92AF: b4_entry_92AF(); break;
 case 0x9340: b4_entry_9340(); break;
 case 0x9347: b4_entry_9347(); break;
 case 0x934A: b4_entry_934A(); break;
+case 0x938B: b4_entry_938B(); break;
 case 0x96F1: b4_entry_96F1(); break;
 case 0x970C: b4_entry_970C(); break;
 case 0x970F: b4_entry_970F(); break;
@@ -22049,6 +22051,7 @@ static void b4_entry_9340(void);
 static void b4_entry_9347(void);
 static void b4_entry_934A(void);
 static void b4_entry_9356(void);
+static void b4_entry_938B(void);
 static void b4_entry_939C(void);
 static void b4_entry_93BD(void);
 static void b4_entry_944C(void);
@@ -24791,6 +24794,23 @@ nmi_poll("b4_L937E");
 nmi_poll("b4_L937E");
 cycles += 3;
 b7_entry_C114(); return;
+}
+static void __attribute__((used)) b4_entry_938B(void) {
+nmi_poll("b4_entry_938B");
+cycles += 2;
+;
+cycles += 2;
+;
+cycles += 2;
+;
+cycles += 2;
+A = 0x03; setZN(A);
+cycles += 3;
+WR(0x51, A);
+cycles += 5;
+{ uint8_t _v = (uint8_t)(RD(0x46) + 1); WR(0x46, _v); setZN(_v); }
+cycles += 6;
+return;
 }
 static void __attribute__((used)) b4_entry_939C(void) {
 nmi_poll("b4_entry_939C");
