@@ -826,6 +826,8 @@ L8710 6
 L8747 6
 L8792 6
 L8829 6
+L8835 6
+L8846 6
 L8886 6
 L8889 6
 L88E3 6
@@ -1277,6 +1279,10 @@ entry_87A6 6
 entry_87A9 6
 entry_87DA 6
 entry_880B 6
+entry_882A 6
+entry_882D 6
+entry_8850 6
+entry_8853 6
 entry_8867 6
 entry_888C 6
 entry_88E9 6
@@ -2025,7 +2031,6 @@ LEF8B 7
 LEFEC 7
 LF009 7
 LF01C 7
-entry_F029 7
 LF02F 7
 LF04B 7
 LF058 7
@@ -2592,6 +2597,7 @@ entry_EF91 7
 entry_EFD7 7
 entry_EFF4 7
 entry_F011 7
+entry_F029 7
 entry_F04F 7
 entry_F0A0 7
 entry_F0A3 7
