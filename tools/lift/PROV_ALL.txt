@@ -1239,6 +1239,7 @@ entry_8152 6
 entry_8154 6
 entry_8156 6
 entry_815B 6
+entry_815C 6
 entry_815F 6
 entry_81C1 6
 entry_81F4 6

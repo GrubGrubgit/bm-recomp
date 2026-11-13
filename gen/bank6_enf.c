@@ -495,6 +495,7 @@ static void b6_entry_8152(void);
 static void b6_entry_8154(void);
 static void b6_entry_8156(void);
 static void b6_entry_815B(void);
+static void b6_entry_815C(void);
 static void b6_entry_815F(void);
 static void b6_entry_81C1(void);
 static void b6_entry_81F4(void);
@@ -1093,6 +1094,12 @@ static void __attribute__((used)) b6_entry_815B(void) {
 nmi_poll("b6_entry_815B");
 cycles += 6;
 return;
+}
+static void __attribute__((used)) b6_entry_815C(void) {
+nmi_poll("b6_entry_815C");
+nmi_poll("b6_entry_815C");
+cycles += 3;
+b6_entry_848F(); return;
 }
 static void __attribute__((used)) b6_entry_815F(void) {
 nmi_poll("b6_entry_815F");
