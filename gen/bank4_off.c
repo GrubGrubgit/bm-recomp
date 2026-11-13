@@ -510,6 +510,7 @@ static void b4_entry_9E7D(void);
 static void b4_entry_9EB3(void);
 static void b4_entry_9F04(void);
 static void b4_entry_9F41(void);
+static void b4_entry_9F5D(void);
 static void b4_entry_9F65(void);
 static void b4_entry_9F77(void);
 static void b4_entry_9F7F(void);
@@ -7065,6 +7066,19 @@ S = (uint8_t)(S - 2);
 b7_entry_C0DE();
 S = (uint8_t)(S + 2);
 nmi_poll("b4_entry_9F41");
+cycles += 6;
+return;
+}
+static void __attribute__((used)) b4_entry_9F5D(void) {
+nmi_poll("b4_entry_9F5D");
+cycles += 2;
+P = (uint8_t)(P & 0xFE);
+nmi_poll("b4_entry_9F5D");
+cycles += 6;
+S = (uint8_t)(S - 2);
+b7_entry_C0DE();
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_9F5D");
 cycles += 6;
 return;
 }
