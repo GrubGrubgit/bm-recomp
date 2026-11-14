@@ -1,0 +1,32 @@
+wp22-wp28 manifest (2026-11-14, device ~/wrun). Base: combined_off.wp21 (=wp22 start).
+All new code produced by the REAL lift.py (snip -> lift -> merge -> patch_tailcalls.py),
+NOT hand-written. Merge scripts wp22.py..wp28.py retained for replay.
+
+wp22: b6_entry_A5C2 (jmp A605), b6_entry_A5C5 + b6_LA5DB/LA5EE/LA5F2 (bank6 $8002 table Y=B2
+  value A5C2, +3 twin A5C5). Vec cases A5C2/A5C5. (Source: ROM bank6 $A5C2: 4C 05 A6 ...)
+wp23: bank4 trampolines/twins from bank4 $8002 table: AFF6(->B009), AFFF-bank4-WRONG (see wp25),
+  B02F(->B040), B032(R1: LDA#40..RTS), B040(RTS), B041(->B054), B044(R2: LDA#80..JSR C030..).
+  Vec cases AFF6/AFFF/B02F/B032/B040/B041/B044. JMPTAB2.txt = JMPTAB.txt + "C030 E02F".
+wp24: bank6 8B74(->8B8A), 8B77, 8BE5, 8C00 + L8C08/L8C0A, trim_8C00 flag (PLA PLA RTS unwind;
+  check in 8B77 JSR site, mirrors trim_L6CD pattern). Vec 8B74/8B77. 8C00 taken-path ($51==8)
+  not yet observed in movie; dormant-safe.
+wp25: CORRECTION - vec AFFF fires with bank6 paged (V7A probe: base=afff bank=6). Bank4 $AFFF
+  bytes were WRONG for this context. Lifted bank6 AFFF (LDA#10..JSR A2E9..RTS? no: ends STA52/RTS
+  via B012? body: lda#10 jsrA2E9 jsrEB71 sta47 ldy#14 jsrE1BD lda#00 sta52 rts) + AFFC trampoline
+  (jmp B012) + B012 (RTS). Vec AFFC/AFFF now -> b6. Removed b4_entry_AFFF body+decls.
+  LESSON: vec values are bank-relative; the paged bank at trap time decides the bytes.
+  Always confirm via V7A probe (base+bank) before lifting. Bank4 batch retained (dormant,
+  correct-if-paged): AFF6 still -> b4 (bank4 table Y=A4); B02x/B04x bank4-only values.
+wp26: bank6 B013(->B04B), B016 (LDA#80..JSR DF68..BEQ B02E/JMP B04B) + LB02E/LB047. Vec B013/B016.
+wp27: bank6 9FDA(->9FF8), 9FDD (INC46..8xSTA..JMP D02D), 9FF8 (RTS). Vec 9FDA/9FDD.
+wp28: bank6 big batch: 9FF9(->A009), 9FFC, A029(JSR9B81+JMP D81C), A02F(->A046), A032, A046(RTS),
+  A047(->A063), A04A, A083(JSR9B81+JMP D81C), A089(->A0B5), A08C, A0B5(RTS) + LA03F/LA097/LA0AB.
+  Vec 9FF9/9FFC/A02F/A032/A047/A04A/A089/A08C.
+Full movie1 (0..4601, pads user-movie.json): RC=0, no traps. Slots vs jsnes: IDENTICAL (0 diffs)
+  f=3300..3640 at +6f phase; small divergence from f~3645 (tank-physics bytes $402-40D,
+  writer b7_LC928 copy from zp $46-51, computed in C9A4/D2B9 subtree). Cause: constant ~6-frame
+  input phase (native game-moment runs ~6f ahead of frame counter; originates in title phase,
+  pre-existing harness timing, NOT lifted-code bug - cycle counts verified). Rapid A-presses
+  (jump zone f~3667+) turn the phase into route variants (e.g. f=4500 x equal, entity bytes differ).
+  Imperceptible to human playtesters (0.1s); deferred.
+Movie length is 23247 frames; only 4601 played. NEXT: long runs + trap-driven lifting to completion.

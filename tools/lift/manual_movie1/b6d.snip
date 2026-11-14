@@ -1,0 +1,28 @@
+entry_B013:
+        jmp     entry_B04B
+entry_B016:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        jsr     LDF68
+        lda     $52
+        beq     LB02E
+        dec     $52
+        lda     #$00
+        sta     $50
+        jmp     entry_B04B
+LB02E:  jsr     LE0ED
+        eor     $4C
+        bmi     LB047
+        jsr     LE0FA
+        bmi     LB047
+        lda     #$3C
+        sta     $A0
+        jsr     LDF36
+        beq     LB047
+        lda     #$10
+        sta     $52
+LB047:  lda     #$01
+        sta     $50
+        rts

@@ -1,0 +1,14 @@
+entry_AFFC:
+        jmp     entry_B012
+entry_AFFF:
+        lda     #$10
+        jsr     entry_A2E9
+        jsr     LEB71
+        sta     $47
+        ldy     #$14
+        jsr     LE1BD
+        lda     #$00
+        sta     $52
+        rts
+entry_B012:
+        rts

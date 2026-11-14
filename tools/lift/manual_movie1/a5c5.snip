@@ -1,0 +1,33 @@
+entry_A5C2:
+        jmp     entry_A605
+entry_A5C5:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        lda     $51
+        beq     LA5DB
+        lda     #$43
+        jsr     LDECC
+        dec     $51
+        jmp     entry_A605
+LA5DB:  jsr     LE083
+        beq     entry_A605
+        jsr     LEB71
+        and     #$40
+        beq     LA5EE
+        lda     #$60
+        ldx     #$60
+        jmp     LA5F2
+LA5EE:  lda     #$A0
+        ldx     #$A0
+LA5F2:  clc
+        adc     $47
+        sta     $47
+        stx     $50
+        ldy     #$10
+        jsr     LE1BD
+        lda     #$00
+        sta     $51
+        dec     $46
+        rts

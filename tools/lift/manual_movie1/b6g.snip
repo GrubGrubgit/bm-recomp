@@ -1,0 +1,16 @@
+entry_B3E3:
+        jmp     entry_B3FD
+entry_B3E6:
+        lda     #$16
+        jsr     entry_A2E9
+        lda     #$B8
+        sta     $47
+        lda     #$08
+        sta     $4D
+        lda     #$00
+        sta     $4C
+        sta     $50
+        lda     #$40
+        sta     $51
+entry_B3FD:
+        rts

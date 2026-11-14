@@ -1,0 +1,16 @@
+entry_9FDA:
+        jmp     entry_9FF8
+entry_9FDD:
+        inc     $46
+        jsr     LEF2B
+        lda     $3E
+        sta     $00
+        lda     $3F
+        sta     $01
+        lda     $7C
+        sta     $02
+        lda     $7D
+        sta     $03
+        jmp     LD02D
+entry_9FF8:
+        rts

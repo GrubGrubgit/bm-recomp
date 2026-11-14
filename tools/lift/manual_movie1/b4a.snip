@@ -1,0 +1,28 @@
+entry_B02F:
+        jmp     entry_B040
+entry_B032:
+        lda     #$40
+        sta     $4D
+        inc     $46
+        jsr     LC1EC
+        lda     #$52
+        jsr     LC216
+        rts
+entry_B040:
+        rts
+entry_B041:
+        jmp     entry_B054
+entry_B044:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        jsr     LC030
+        beq     entry_B054
+        jmp     LC114
+entry_AFF6:
+        jmp     entry_B009
+entry_AFFF:
+        sta     $43
+        jsr     LC024
+        jmp     entry_B004

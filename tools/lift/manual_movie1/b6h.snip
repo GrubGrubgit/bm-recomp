@@ -1,0 +1,43 @@
+entry_B3FE:
+        jmp     entry_B457
+entry_B401:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        lda     $50
+        bne     LB43A
+        jsr     LE083
+        bpl     LB418
+        jsr     LE0D8
+        jmp     LB420
+LB418:  and     #$40
+        beq     LB420
+        lda     #$04
+        sta     $4D
+LB420:  dec     $51
+        bne     entry_B457
+        lda     #$46
+        jsr     LDECC
+        inc     $50
+        jsr     LEB71
+        and     #$07
+        clc
+        adc     #$20
+        tay
+        jsr     LE1BD
+        jmp     entry_B457
+LB43A:  lda     #$01
+        ldx     #$00
+        jsr     LDFD1
+        jsr     LE083
+        jsr     entry_A2D4
+        lda     $4D
+        cmp     #$04
+        bcs     entry_B457
+        lda     #$04
+        sta     $4D
+        dec     $50
+        lda     #$70
+        sta     $51
+        jmp     entry_B457

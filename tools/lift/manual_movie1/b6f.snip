@@ -1,0 +1,73 @@
+entry_9FF9:
+        jmp     entry_A009
+entry_9FFC:
+        lda     #$40
+        sta     $42
+        lda     #$40
+        sta     $43
+        jsr     LE083
+        bne     entry_A029
+        jmp     entry_A009
+entry_A029:
+        jsr     entry_9B81
+        jmp     LD81C
+entry_A02F:
+        jmp     entry_A046
+entry_A032:
+        jsr     LEB71
+        and     #$0F
+        lsr     a
+        bcc     LA03F
+        eor     #$FF
+        clc
+        adc     #$01
+LA03F:  sta     $4C
+        inc     $46
+        jsr     entry_9E9E
+        rts
+entry_A046:
+        rts
+entry_A047:
+        jmp     entry_A063
+entry_A04A:
+        lda     #$40
+        sta     $42
+        lda     #$40
+        sta     $43
+        lda     #$02
+        jsr     LDFA0
+        bne     entry_A083
+        jsr     LE0ED
+        bne     entry_A063
+        jsr     LE0FA
+        beq     entry_A083
+        jmp     entry_A063
+entry_A083:
+        jsr     entry_9B81
+        jmp     LD81C
+entry_A089:
+        jmp     entry_A0B5
+entry_A08C:
+        jsr     LE0ED
+        tay
+        bpl     LA097
+        eor     #$FF
+        clc
+        adc     #$01
+LA097:  cmp     #$10
+        bcs     entry_A0B5
+        cmp     #$0A
+        bcs     entry_A0B5
+        tax
+        lda     $A0EB,x
+        sta     $47
+        tya
+        bpl     LA0AB
+        jsr     LE0D8
+LA0AB:  ldy     #$30
+        jsr     LE1BD
+        inc     $46
+        jsr     entry_9E9E
+        rts
+entry_A0B5:
+        rts

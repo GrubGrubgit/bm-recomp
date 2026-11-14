@@ -1,0 +1,55 @@
+entry_8B74:
+        jmp     entry_8B8A
+entry_8B77:
+        lda     #$4C
+        sta     $45
+        lda     $8B8F
+        sta     $7A
+        lda     $8B90
+        sta     $7B
+        ldy     #$00
+        jsr     entry_8BE5
+        jmp     entry_8B8A
+entry_8BE5:
+        ldy     $51
+        cpy     #$08
+        beq     entry_8C00
+        lda     ($7A),y
+        sta     $4C
+        tya
+        clc
+        adc     #$08
+        tay
+        lda     ($7A),y
+        sta     $4D
+        inc     $51
+        jsr     entry_8C32
+        jmp     LD2DB
+entry_8C00:
+        lda     $47
+        bmi     L8C08
+        lda     #$0F
+        bne     L8C0A
+L8C08:  lda     #$80
+L8C0A:  sta     $47
+        lda     $50
+        clc
+        adc     #$10
+        tay
+        lda     ($7A),y
+        sta     $46
+        ldy     #$14
+        lda     ($7A),y
+        sta     $4C
+        iny
+        lda     ($7A),y
+        sta     $4D
+        jsr     entry_8C32
+        lda     $45
+        jsr     entry_8C4D
+        lda     #$00
+        sta     $50
+        sta     $51
+        pla
+        pla
+        rts
