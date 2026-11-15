@@ -22,7 +22,7 @@ ranges.sort()
 cset=set()
 for lo,hi in ranges:
     cset.update(range(lo,hi+1))
-SUP={'ldx','lda','ldy','inx','dex','iny','dey','tax','txa','tay','tya','tsx','txs','pha','pla','php','sec','clc','sei','cli','stx','sty','sta','and','eor','ora','rol','ror','asl','lsr','dec','inc','bit','adc','sbc','cmp','cpx','cpy','bne','beq','bcc','bcs','bpl','bmi','bvs','bvc','jsr','jmp','rts','rti','nop','brk'}
+SUP={'ldx','lda','ldy','inx','dex','iny','dey','tax','txa','tay','tya','tsx','txs','pha','pla','php','plp','sec','clc','sei','cli','cld','sed','stx','sty','sta','and','eor','ora','rol','ror','asl','lsr','dec','inc','bit','adc','sbc','cmp','cpx','cpy','bne','beq','bcc','bcs','bpl','bmi','bvs','bvc','jsr','jmp','rts','rti','nop','brk'}
 def mode_of(txt, op):
     arg=txt[len(op):].strip()
     if not arg: return 'imp'

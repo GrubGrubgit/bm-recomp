@@ -127,7 +127,7 @@ LOAD_OPS = set(['lda', 'ldx', 'ldy', 'and', 'eor', 'ora', 'adc', 'sbc', 'cmp'])
 LOAD_SWAP_OPS = LOAD_OPS | set(['bit', 'cpx', 'cpy'])
 STORE_OPS = set(['sta', 'stx', 'sty'])
 RMW_OPS = set(['dec', 'inc', 'asl', 'lsr', 'rol', 'ror'])
-IMP2 = set(['tax', 'tay', 'txa', 'tya', 'tsx', 'txs', 'inx', 'dex', 'iny', 'dey', 'clc', 'sec', 'cli', 'sei', 'cld', 'nop'])
+IMP2 = set(['tax', 'tay', 'txa', 'tya', 'tsx', 'txs', 'inx', 'dex', 'iny', 'dey', 'clc', 'sec', 'cli', 'sei', 'cld', 'sed', 'nop'])
 _KNOWN_CYC = LOAD_OPS | STORE_OPS | RMW_OPS | IMP2 | set(['cpx', 'cpy', 'bit', 'pha', 'php', 'pla', 'plp'])
 def cyc_pre(op, arg):
     if op in BR or op in ('jsr', 'jmp', 'rts', 'rti'):
@@ -202,6 +202,7 @@ def op_len(op, arg):
 asm_path, out_path, bank, entry_arg = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 stub_arg = sys.argv[5] if len(sys.argv) > 5 else ''
 stubset = set(stub_arg.split(',')) if stub_arg else set()
+kilset = set()
 entries = entry_arg.split(',')
 vec_paths_in = []
 amap_paths_in = []
@@ -289,6 +290,13 @@ def xresolve(lbl):
     if not hits: return None
     assert len(hits) == 1, 'ambiguous addrmap addr: ' + lbl
     return hits[0]
+KILGAP = set(['$02','$12','$22','$32','$42','$52','$62','$72','$92','$B2','$D2','$F2'])
+DOPGAP = set(['$14','$34'])
+def _gapkind(vals):
+    _v = [v.upper() for v in vals]
+    if len(_v) == 1 and _v[0] in KILGAP: return 'kil'
+    if len(_v) == 1 and _v[0] in DOPGAP: return 'dop'
+    return 'bad'
 def vectgt(_vb, _t):
     if _winlo <= _t <= _winhi:
         _hit = amap.get((_t, banknum))
@@ -308,6 +316,23 @@ refd = set()
 vecsites = set()
 xcross = set()
 pre_cur = None
+_kpcur = None
+for _rkil in lines:
+    _ks = _rkil.strip()
+    if _ks.startswith('; gap'):
+        _kgv = [_v.upper() for _v in _ks.split()[3:]]
+        if _gapkind(_kgv) == 'kil':
+            assert _kpcur is not None, 'kil gap outside entry'
+            _kn0 = '%s_KIL' % _kpcur
+            assert _kn0 not in kilset, 'two KIL gaps in entry ' + _kpcur
+            kilset.add(_kn0)
+        continue
+    _kl = _rkil.split(';')[0]
+    if not _kl.strip(): continue
+    _kt = _kl.strip()
+    if _rkil and _rkil[0] != ' ' and _rkil[0] != chr(9) and ':' in _kt:
+        _knm = _kt.split(':', 1)[0].strip()
+        if _knm in entries: _kpcur = _knm
 for raw2 in lines:
     ln2 = raw2.split(';')[0]
     if not ln2.strip():
@@ -344,6 +369,8 @@ for e in entries:
 for e in sorted(stubset - set(entries)):
     if xresolve(e) is None:
         out.append('static void %s_%s(void);' % (bank, e))
+for _kn3 in sorted(kilset):
+    out.append('static void %s_%s(void);' % (bank, _kn3))
 for (_tb, _tn) in sorted(xcross):
     out.append('static void b%d_%s(void);' % (_tb, _tn))
 for _va in sorted(vecsites):
@@ -357,15 +384,68 @@ for _n in sorted(_vtdecl):
     out.append('static void %s(void);' % _n)
 cur = None
 found = set()
+_dop_skip = False
+_dead = False
 last_op = None
 cur_addr = None
 fn_sites = []
 for raw in lines:
     _rs = raw.strip()
-    if _rs.startswith('; gap '):
-        assert cur_addr is not None, 'gap before any address'
-        cur_addr += int(_rs.split()[-1])
+    _ln0 = raw.split(';')[0]
+    if _dead:
+        if not _ln0.strip(): continue
+        _st0 = _ln0.strip()
+        if raw[0] != ' ' and raw[0] != chr(9) and ':' in _st0:
+            _dnm = _st0.split(':', 1)[0].strip()
+            if _dnm in entries:
+                _dead = False
+            else:
+                assert _dnm not in refd, 'refd label in dead KIL tail: ' + _dnm
+                continue
+        else:
+            continue
+    if _dop_skip:
+        assert raw.strip(), 'dop operand missing (blank line)'
+        _dln = raw.split(';')[0]
+        _ds0 = _dln.strip()
+        if raw[0] != ' ' and raw[0] != chr(9) and ':' in _ds0:
+            _dlab, _drest = [x.strip() for x in _ds0.split(':', 1)]
+            assert _dlab not in entries, 'entry label as dop operand: ' + _dlab
+            if _dlab in refd:
+                out.append('%s_%s:;' % (bank, _dlab))
+            _ds0 = _drest
+        assert _ds0, 'dop operand missing after label'
+        _dp = _ds0.split(None, 1)
+        assert len(_dp) == 1, 'dop operand not implied: ' + _ds0
+        assert _dp[0] in ('tax','tay','txa','tya','tsx','txs','inx','dex','iny','dey','pha','php','pla','plp','clc','sec','cli','sei','cld','sed','nop'), 'bad dop operand: ' + _ds0
+        cur_addr += 1
+        _dop_skip = False
         continue
+    if _rs.startswith('; gap'):
+        assert cur_addr is not None, 'gap before any address'
+        assert not _dop_skip, 'gap inside dop fuse'
+        _gtoks = _rs.split()
+        _gn = int(_gtoks[2])
+        _gvals = [_v.upper() for _v in _gtoks[3:]]
+        assert len(_gvals) == _gn, 'gap count/value mismatch: ' + _rs
+        _gk = _gapkind(_gvals)
+        if _gk == 'kil':
+            _kn2 = '%s_KIL' % cur
+            assert _kn2 in kilset, 'kil stub not predeclared: ' + _kn2
+            out.append('{ %s_%s(); return; }' % (bank, _kn2))
+            last_op = 'jmp'
+            cur_addr += _gn
+            _dead = True
+            continue
+        elif _gk == 'dop':
+            assert _gvals[0] in ('$14', '$34'), 'unsupported DOP: ' + _rs
+            out.append('cycles += 4;')
+            cur_addr += _gn
+            _dop_skip = True
+            last_op = 'nop'
+            continue
+        else:
+            raise AssertionError('unhandled gap bytes: ' + _rs)
     ln = raw.split(';')[0]
     if not ln.strip():
         continue
@@ -388,6 +468,7 @@ for raw in lines:
                     out.append('%s_%s();' % (bank, nx))
                     out.append('return;')
                 out.append('}')
+            _dead = False
             last_op = None
             out.append('static void __attribute__((used)) %s_%s(void) {' % (bank, name))
             if name in self_tgt:
@@ -460,6 +541,8 @@ for raw in lines:
         out.append('P = (uint8_t)(P & 0xFB);')
     elif op == 'cld':
         out.append('P = (uint8_t)(P & 0xF7);')
+    elif op == 'sed':
+        out.append('P = (uint8_t)(P | 0x08);')
     elif op == 'stx':
         out.append(wr_of(arg, 'X'))
     elif op == 'sty':
@@ -620,6 +703,8 @@ if cur is not None:
 for st in sorted(stubset):
     if xresolve(st) is None:
         out.append('static void %s_%s(void) { __builtin_trap(); }' % (bank, st))
+for _kn4 in sorted(kilset):
+    out.append('static void %s_%s(void) { __builtin_trap(); }' % (bank, _kn4))
 for (_tb, _tn) in sorted(xcross):
     if (_tn, _tb) not in prov:
         out.append('static void b%d_%s(void) { __builtin_trap(); }' % (_tb, _tn))
@@ -647,5 +732,6 @@ for _va in sorted(vecsites):
     out.append('}')
 missing = [e for e in entries if e not in found and e not in stubset]
 assert not missing, 'entry labels not found: ' + ','.join(missing)
+assert not _dop_skip, 'dangling dop fuse at end'
 open(out_path, 'w').write(chr(10).join(out) + chr(10))
 print('lifted ' + entry_arg + ' -> ' + out_path)

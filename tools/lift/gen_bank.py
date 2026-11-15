@@ -64,7 +64,8 @@ for ln in raw:
             if st.startswith('.byte'):
                 sc = ln.split(';', 1)[0].strip()
                 assert '"' not in sc and "'" not in sc, 'string directive: ' + sc[:40]
-                cur[2].append('; gap %d' % (len(sc.split(','))))
+                _gv0 = [t.strip().upper() for t in sc.split(None, 1)[1].split(',')]
+                cur[2].append('; gap %d %s' % (len(_gv0), ' '.join(_gv0)))
                 continue
             assert st.startswith('.code') or st.startswith('.segment'), 'unsupported directive: ' + st[:40]
             continue
