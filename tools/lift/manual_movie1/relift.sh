@@ -23,3 +23,5 @@ python3 ./lift.py manual_movie1/b6g.snip $OUT/b6g_enf.c b6 entry_B3E3,entry_B3E6
 python3 ./lift.py manual_movie1/b6h.snip $OUT/b6h_off.c b6 entry_B3FE,entry_B401 entry_B457 ADDRMAP:./ADDRMAP.txt PROV:./PROV_ALL.txt JMPTAB:./JMPTAB.txt VEC:./vec007A.txt UNWIND:off
 python3 ./lift.py manual_movie1/b6h.snip $OUT/b6h_enf.c b6 entry_B3FE,entry_B401 entry_B457 ADDRMAP:./ADDRMAP.txt PROV:./PROV_ALL.txt JMPTAB:./JMPTAB.txt VEC:./vec007A.txt UNWIND:enforce
 echo done
+python3 ./lift.py manual_movie1/b6i.snip $OUT/b6i_off.c b6 entry_9BAA entry_9BB1 ADDRMAP:./ADDRMAP.txt PROV:./PROV_ALL.txt JMPTAB:./JMPTAB.txt VEC:./vec007A.txt UNWIND:off
+python3 ./lift.py manual_movie1/b6i.snip $OUT/b6i_enf.c b6 entry_9BAA entry_9BB1 ADDRMAP:./ADDRMAP.txt PROV:./PROV_ALL.txt JMPTAB:./JMPTAB.txt VEC:./vec007A.txt UNWIND:enforce
