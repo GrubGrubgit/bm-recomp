@@ -444,6 +444,9 @@ for raw in lines:
             _dop_skip = True
             last_op = 'nop'
             continue
+        elif last_op in ('jmp', 'rts', 'rti'):
+            cur_addr += _gn
+            continue
         else:
             raise AssertionError('unhandled gap bytes: ' + _rs)
     ln = raw.split(';')[0]
