@@ -1634,6 +1634,7 @@ entry_B6EC 6
 entry_B6EF 6
 entry_B6F7 6
 entry_B708 6
+entry_B70F 6
 entry_B713 6
 entry_B718 6
 entry_B71D 6

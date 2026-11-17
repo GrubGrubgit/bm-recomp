@@ -66,15 +66,15 @@ static uint8_t pad_bits;
 static int pad_pos1, pad_pos2;
 static int strobe;
 static int watch_lo, watch_hi, watch_on;
-static int tape_fr[512];
-static uint8_t tape_mk[512];
+static int tape_fr[8192];
+static uint8_t tape_mk[8192];
 static int tape_n;
 static FILE *edge_out;
 static int edge_mode;
 static FILE *ram_out;
 static int ram_every;
-static uint16_t eshadow[512];
-static uint8_t eshadow_plus[512];
+static uint16_t eshadow[8192];
+static uint8_t eshadow_plus[8192];
 static int esp;
 
 #define CYCLES_PER_FRAME 29781
@@ -507,7 +507,7 @@ int main(int argc, char **argv) {
       FILE *tf = fopen(argv[ai], "r");
       if (tf) {
         int fr; unsigned mk;
-        while (tape_n < 512 && fscanf(tf, "%d %x", &fr, &mk) == 2) { tape_fr[tape_n] = fr; tape_mk[tape_n] = (uint8_t)mk; tape_n++; }
+        while (tape_n < 8192 && fscanf(tf, "%d %x", &fr, &mk) == 2) { tape_fr[tape_n] = fr; tape_mk[tape_n] = (uint8_t)mk; tape_n++; }
         fclose(tf);
         fputs("tape loaded", stderr);
       }

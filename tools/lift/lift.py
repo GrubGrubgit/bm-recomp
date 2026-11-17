@@ -127,7 +127,7 @@ LOAD_OPS = set(['lda', 'ldx', 'ldy', 'and', 'eor', 'ora', 'adc', 'sbc', 'cmp'])
 LOAD_SWAP_OPS = LOAD_OPS | set(['bit', 'cpx', 'cpy'])
 STORE_OPS = set(['sta', 'stx', 'sty'])
 RMW_OPS = set(['dec', 'inc', 'asl', 'lsr', 'rol', 'ror'])
-IMP2 = set(['tax', 'tay', 'txa', 'tya', 'tsx', 'txs', 'inx', 'dex', 'iny', 'dey', 'clc', 'sec', 'cli', 'sei', 'cld', 'sed', 'nop'])
+IMP2 = set(['tax', 'tay', 'txa', 'tya', 'tsx', 'txs', 'inx', 'dex', 'iny', 'dey', 'clc', 'sec', 'cli', 'sei', 'cld', 'sed', 'clv', 'nop'])
 _KNOWN_CYC = LOAD_OPS | STORE_OPS | RMW_OPS | IMP2 | set(['cpx', 'cpy', 'bit', 'pha', 'php', 'pla', 'plp'])
 def cyc_pre(op, arg):
     if op in BR or op in ('jsr', 'jmp', 'rts', 'rti'):
@@ -417,7 +417,7 @@ for raw in lines:
         assert _ds0, 'dop operand missing after label'
         _dp = _ds0.split(None, 1)
         assert len(_dp) == 1, 'dop operand not implied: ' + _ds0
-        assert _dp[0] in ('tax','tay','txa','tya','tsx','txs','inx','dex','iny','dey','pha','php','pla','plp','clc','sec','cli','sei','cld','sed','nop'), 'bad dop operand: ' + _ds0
+        assert _dp[0] in ('tax','tay','txa','tya','tsx','txs','inx','dex','iny','dey','pha','php','pla','plp','clc','sec','cli','sei','cld','sed','clv','nop'), 'bad dop operand: ' + _ds0
         cur_addr += 1
         _dop_skip = False
         continue
@@ -546,6 +546,8 @@ for raw in lines:
         out.append('P = (uint8_t)(P & 0xF7);')
     elif op == 'sed':
         out.append('P = (uint8_t)(P | 0x08);')
+    elif op == 'clv':
+        out.append('P = (uint8_t)(P & 0xBF);')
     elif op == 'stx':
         out.append(wr_of(arg, 'X'))
     elif op == 'sty':
