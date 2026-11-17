@@ -50,8 +50,13 @@ static int trim_8C00 = 0;
 static inline void setZN(uint8_t v) {
     P = (uint8_t)((P & 0x7D) | (v == 0 ? 0x02 : 0) | (v & 0x80));
 }
-static inline __attribute__((unused)) int in_vblank(void) {
+static uint64_t wall_no = 0;
+static uint64_t vbl_ack_wall = (uint64_t)-1;
+static inline int in_vblank_raw(void) {
     return (cycles % CYCLES_PER_FRAME) >= (uint64_t)VBLANK_START;
+}
+static inline __attribute__((unused)) int in_vblank(void) {
+    return in_vblank_raw() && (wall_no != vbl_ack_wall);
 }
 static void nmi_fire_now(uint64_t frame, const char *site) {
     if (pad_sample_fn) pad_bits = pad_sample_fn(frame);
@@ -69,6 +74,7 @@ static inline void nmi_poll(const char *site) {
     if (!nmi_armed || !nmi_fire_fn) return;
     if (in_nmi) return;
     while (cycles >= nmi_next_edge) {
+        wall_no++;
         uint64_t f = nmi_next_edge / CYCLES_PER_FRAME;
         nmi_next_edge += (uint64_t)CYCLES_PER_FRAME;
         if (reg2000 & 0x80) nmi_fire_now(f, site);
@@ -115,7 +121,7 @@ static uint8_t RD(uint16_t a) {
         int r = a & 7;
         if (r == 2) {
             uint8_t v = 0;
-            if (in_vblank()) v |= 0x80;
+            if (in_vblank_raw()) { v |= 0x80; vbl_ack_wall = wall_no; }
             ppu_latch = 0;
             sc_latch = 0;
             return v;
@@ -141,7 +147,7 @@ static uint8_t RD(uint16_t a) {
     if (a == 0x4015) return 0;
     if (a == 0x4016) {
         if (strobe) {
-            if (pad_sample_fn) { uint8_t live = pad_sample_fn(cycles / (uint64_t)CYCLES_PER_FRAME); return live & 1; }
+            if (pad_sample_fn) { uint8_t live = pad_sample_fn(wall_no); return live & 1; }
             return pad_latch1 & 1;
         }
         if (pad_pos1 < 8) return (uint8_t)((pad_latch1 >> (pad_pos1++)) & 1);
@@ -177,7 +183,7 @@ static void WR(uint16_t a, uint8_t v) {
     if (a == 0x4016) {
         if (v & 1) {
             pad_pos1 = 0; pad_pos2 = 0;
-            if (pad_sample_fn) { uint64_t f = cycles / (uint64_t)CYCLES_PER_FRAME; uint8_t live = pad_sample_fn(f); pad_latch1 = live; pad_latch2 = 0; pad_bits = live; }
+            if (pad_sample_fn) { uint64_t f = wall_no; uint8_t live = pad_sample_fn(f); pad_latch1 = live; pad_latch2 = 0; pad_bits = live; }
             else { pad_latch1 = 0; pad_latch2 = 0; }
         }
         strobe = v & 1;
