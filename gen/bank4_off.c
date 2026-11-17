@@ -543,6 +543,7 @@ static void b4_entry_A517(void);
 static void b4_entry_A568(void);
 static void b4_entry_A65A(void);
 static void b4_entry_A6DE(void);
+static void b4_entry_A74B(void);
 static void b4_entry_A74E(void);
 static void b4_entry_A7A2(void);
 static void b4_entry_A7C6(void);
@@ -8683,6 +8684,13 @@ cycles += 3;
 WR(0x51, A);
 cycles += 2;
 A = 0x02; setZN(A);
+cycles += 3;
+WR(0x50, A);
+cycles += 6;
+return;
+}
+static void __attribute__((used)) b4_entry_A74B(void) {
+nmi_poll("b4_entry_A74B");
 cycles += 3;
 WR(0x50, A);
 cycles += 6;
