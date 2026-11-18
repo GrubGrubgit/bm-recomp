@@ -35846,7 +35846,7 @@ WR(0x43, A);
 A = RD(0x50); setZN(A);
 cycles += 3;
 cycles += 2;
-if ((!(P & 0x02))) { cycles += 1; nmi_poll("b4_entry_B792"); goto b4_LB7B0; }
+if ((!(P & 0x02))) { cycles += 1; nmi_poll("b4_entry_B792"); goto b4_LB7B6; }
 nmi_poll("b4_entry_B792");
 cycles += 6;
 S = (uint8_t)(S - 2);
@@ -35871,7 +35871,6 @@ cycles += 2;
 if (((P & 0x80))) { cycles += 1; nmi_poll("b4_entry_B792"); goto b4_LB7B2; }
 cycles += 2;
 A = 0x38; setZN(A);
-b4_LB7B0:;
 cycles += 2;
 if ((!(P & 0x02))) { cycles += 1; nmi_poll("b4_entry_B792"); goto b4_LB7B4; }
 b4_LB7B2:;
@@ -35880,6 +35879,7 @@ A = 0xC8; setZN(A);
 b4_LB7B4:;
 cycles += 3;
 WR(0x4C, A);
+b4_LB7B6:;
 nmi_poll("b4_entry_B792");
 cycles += 6;
 S = (uint8_t)(S - 2);

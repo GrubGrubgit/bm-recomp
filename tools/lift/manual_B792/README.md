@@ -5,9 +5,9 @@ B792-B7BB decodes as .byte in disasm prg4.s (gap between entry_B785
 and entry_B7BD). Same family as prior gap lifts.
 
 ## ROM decode (bank4 file offset 0x3792, 42 bytes)
-B792: LDA80 STA42 / LDA80 STA43 / LDA50 / BNE LB7B0 / JSR C04E /
+B792: LDA80 STA42 / LDA80 STA43 / LDA50 / BNE LB7B6 / JSR C04E /
 BNE B7BD / INC50 / LDA00 STA4D / JSR C045 / BMI LB7B2 / LDA38 /
-BNE LB7B4 / LB7B2: LDA C8 / LB7B4: STA4C / JSR C02D / BEQ B7BD /
+BNE LB7B4 / LB7B2: LDA C8 / LB7B4: STA4C / LB7B6: JSR C02D / BEQ B7BD /
 DEC50 / fall into B7BD (pre-existing entry).
 JSR targets C04E/C045/C02D are fixed-bank JMP trampolines
 (b7_LC04E/C045/C02D, each 3cy). Lift emits 6cy JSR plus the
@@ -17,8 +17,9 @@ are not in JMPTAB).
 
 ## Snip fixes (vs naive transcription)
 1. Snip labels must start at column 0 (lift.py ignores indented
-labels); LB7B2/LB7B4 unindented, and LB7B0 added at B7B0 (the BNE
-instruction itself is the B79C branch target).
+labels); LB7B2/LB7B4/LB7B6 unindented. LB7B6 (the JSR C02D at B7B6) is the
+B79C BNE target (skip-path writes no $4C, preserving the slot value;
+the old snip wrongly targeted LB7B0 and wrote $4C=$50 on the skip path).
 2. Interior labels use LB7B0 form (L plus full 4-hex addr) so the
 lifter computes page-cross correctly (all same B7 page, plus 0).
 3. Snip ends with jmp entry_B7BD even though ROM falls through
