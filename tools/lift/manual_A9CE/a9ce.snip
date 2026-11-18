@@ -1,0 +1,33 @@
+entry_A9CB:
+        jmp     LA9DD
+entry_A9CE:
+        lda     #$07
+        jsr     entry_A2E9
+        lda     #$00
+        sta     $4C
+        sta     $4D
+        lda     #$01
+        sta     $50
+LA9DD:  rts
+entry_A9DE:
+        jmp     entry_AA03
+entry_A9E1:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        lda     $50
+        beq     LA9FA
+        jsr     entry_E005
+        beq     LA9F8
+        lda     #$00
+        sta     $4C
+        beq     entry_AA03
+LA9F8:  inc     $50
+LA9FA:  lda     #$11
+        jsr     entry_D2B1
+        bmi     entry_AA03
+        dec     $50
+entry_AA03:
+        rts
+

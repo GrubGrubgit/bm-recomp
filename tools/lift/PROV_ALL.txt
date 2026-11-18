@@ -1128,6 +1128,9 @@ LA975 6
 LA9A4 6
 LA9AE 6
 LA9C3 6
+LA9DD 6
+LA9F8 6
+LA9FA 6
 LAA13 6
 LAA2D 6
 LAA3B 6
@@ -1569,6 +1572,10 @@ entry_A97C 6
 entry_A983 6
 entry_A986 6
 entry_A994 6
+entry_A9CB 6
+entry_A9CE 6
+entry_A9DE 6
+entry_A9E1 6
 entry_AA03 6
 entry_AA5D 6
 entry_AA62 6
