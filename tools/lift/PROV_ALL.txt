@@ -586,6 +586,13 @@ entry_ADA2 4
 entry_AE62 4
 entry_AEDF 4
 entry_AF2A 4
+entry_AF45 4
+entry_AF48 4
+LAF66 4
+entry_AF67 4
+entry_AF6A 4
+LB88 4
+LB96 4
 entry_AF99 4
 entry_AFBC 4
 entry_AFC1 4
@@ -624,6 +631,11 @@ entry_B54F 4
 entry_B57D 4
 entry_B620 4
 entry_B623 4
+entry_B64D 4
+entry_B650 4
+LB65A 4
+entry_B65E 4
+LB672 4
 entry_B680 4
 entry_B6A9 4
 entry_B6AE 4
@@ -2264,6 +2276,7 @@ entry_C1DA 7
 entry_C1DD 7
 entry_C1E6 7
 entry_C1EC 7
+entry_C1EF 7
 entry_C1F5 7
 entry_C204 7
 entry_C207 7
