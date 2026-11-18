@@ -18,6 +18,7 @@ int pad_pos1, pad_pos2, strobe;
 int uw_abort;
 int uw_888C;
 int uw_9488;
+int uw_9007;
 const char *uw_caller;
 const char *uw_callee;
 uint64_t cycles;
@@ -81,10 +82,10 @@ static inline void nmi_poll(const char *site) {
     while (cycles >= nmi_next_edge) {
         wall_no++;
         uint64_t f = nmi_next_edge / CYCLES_PER_FRAME;
-        nmi_next_edge += (uint64_t)CYCLES_PER_FRAME;
+        { uint64_t fl = (uint64_t)CYCLES_PER_FRAME; if ((reg2001 & 0x18) && (wall_no & 1)) fl -= 1; nmi_next_edge += fl; }
         if (reg2000 & 0x80) nmi_fire_now(f, site);
     }
-    while (cycles >= pad_next) { pad_wall++; pad_next += (uint64_t)CYCLES_PER_FRAME; }
+    while (cycles >= pad_next) { pad_wall++; { uint64_t pfl = (uint64_t)CYCLES_PER_FRAME; if ((reg2001 & 0x18) && (pad_wall & 1)) pfl -= 1; pad_next += pfl; } }
 }
 static inline int vram_phys(uint16_t a) {
     uint16_t b = a;
@@ -195,7 +196,7 @@ static void WR(uint16_t a, uint8_t v) {
         uint16_t base = (uint16_t)v << 8;
         int i;
         for (i = 0; i < 256; i++) oam[i] = RD(base + i);
-        cycles += 512;
+        cycles += ((cycles & 1) ? 514 : 513);
         return;
     }
     if (a == 0x4016) {
@@ -25038,6 +25039,7 @@ nmi_poll("b4_entry_8FD1");
 cycles += 6;
 S = (uint8_t)(S - 2);
 b4_entry_9007();
+if (uw_9007) { uw_9007 = 0; return; }
 S = (uint8_t)(S + 2);
 nmi_poll("b4_entry_8FD1");
 b4_entry_8FD4();
@@ -25160,6 +25162,7 @@ cycles += 4;
 S = (uint8_t)(S + 1); A = stk[S]; setZN(A);
 cycles += 4;
 S = (uint8_t)(S + 1); A = stk[S]; setZN(A);
+uw_9007 = 1;
 b4_L9010();
 return;
 }
@@ -25345,6 +25348,7 @@ nmi_poll("b4_L91BE");
 cycles += 6;
 S = (uint8_t)(S - 2);
 b4_entry_9007();
+if (uw_9007) { uw_9007 = 0; return; }
 S = (uint8_t)(S + 2);
 nmi_poll("b4_L91BE");
 cycles += 2;
