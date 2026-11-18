@@ -21153,6 +21153,8 @@ static void b6_entry_A2E9(void);
 static void b4_entry_93BD(void);
 static void b4_entry_B2B4(void);
 static void b4_entry_B747(void);
+static void b4_entry_B785(void);
+static void b4_entry_B792(void);
 static void b4_L960E(void);
 static void b4_entry_9633(void);
 static void b4_entry_96BF(void);
@@ -22163,6 +22165,8 @@ case 0xB135: if (swbank == prg[4]) b4_entry_B135(); else __builtin_trap(); break
 case 0xB4E4: if (swbank == prg[4]) b4_entry_B4E4(); else __builtin_trap(); break;
 case 0xB4F1: if (swbank == prg[4]) b4_entry_B4F1(); else __builtin_trap(); break;
 case 0xB563: if (swbank == prg[4]) b4_entry_B563(); else __builtin_trap(); break;
+case 0xB785: if (swbank == prg[4]) b4_entry_B785(); else __builtin_trap(); break;
+case 0xB792: if (swbank == prg[4]) b4_entry_B792(); else __builtin_trap(); break;
 case 0xAF45: if (swbank == prg[4]) b4_entry_AF45(); else __builtin_trap(); break;
 case 0xAF48: if (swbank == prg[4]) b4_entry_AF48(); else __builtin_trap(); break;
 case 0xAF67: if (swbank == prg[4]) b4_entry_AF67(); else __builtin_trap(); break;
@@ -23405,6 +23409,8 @@ static void b4_entry_B6B2(void);
 static void b4_entry_B6C3(void);
 static void b4_entry_B6E0(void);
 static void b4_entry_B747(void);
+static void b4_entry_B785(void);
+static void b4_entry_B792(void);
 static void b4_entry_B7BD(void);
 static void b4_entry_B82C(void);
 static void b4_entry_B82F(void);
@@ -35960,6 +35966,84 @@ static void __attribute__((used)) b4_LB77D(void) {
 nmi_poll("b4_LB77D");
 cycles += 6;
 return;
+}
+static void __attribute__((used)) b4_entry_B785(void) {
+nmi_poll("b4_entry_B785");
+cycles += 2;
+A = 0x0B; setZN(A);
+nmi_poll("b4_entry_B785");
+cycles += 6;
+S = (uint8_t)(S - 2);
+b4_entry_B2B4();
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B785");
+cycles += 2;
+A = 0x00; setZN(A);
+cycles += 3;
+WR(0x50, A);
+cycles += 6;
+return;
+}
+static void __attribute__((used)) b4_entry_B792(void) {
+nmi_poll("b4_entry_B792");
+cycles += 2;
+A = 0x80; setZN(A);
+cycles += 3;
+WR(0x42, A);
+cycles += 2;
+A = 0x80; setZN(A);
+cycles += 3;
+WR(0x43, A);
+A = RD(0x50); setZN(A);
+cycles += 3;
+cycles += 2;
+if ((!(P & 0x02))) { cycles += 1; nmi_poll("b4_entry_B792"); goto b4_LB7B0; }
+nmi_poll("b4_entry_B792");
+cycles += 6;
+S = (uint8_t)(S - 2);
+b7_LC04E();
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B792");
+cycles += 2;
+if ((!(P & 0x02))) { cycles += 1; b4_entry_B7BD(); return; }
+cycles += 5;
+{ uint8_t _v = (uint8_t)(RD(0x50) + 1); WR(0x50, _v); setZN(_v); }
+cycles += 2;
+A = 0x00; setZN(A);
+cycles += 3;
+WR(0x4D, A);
+nmi_poll("b4_entry_B792");
+cycles += 6;
+S = (uint8_t)(S - 2);
+b7_LC045();
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B792");
+cycles += 2;
+if (((P & 0x80))) { cycles += 1; nmi_poll("b4_entry_B792"); goto b4_LB7B2; }
+cycles += 2;
+A = 0x38; setZN(A);
+b4_LB7B0:;
+cycles += 2;
+if ((!(P & 0x02))) { cycles += 1; nmi_poll("b4_entry_B792"); goto b4_LB7B4; }
+b4_LB7B2:;
+cycles += 2;
+A = 0xC8; setZN(A);
+b4_LB7B4:;
+cycles += 3;
+WR(0x4C, A);
+nmi_poll("b4_entry_B792");
+cycles += 6;
+S = (uint8_t)(S - 2);
+b7_LC02D();
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B792");
+cycles += 2;
+if (((P & 0x02))) { cycles += 1; b4_entry_B7BD(); return; }
+cycles += 5;
+{ uint8_t _v = (uint8_t)(RD(0x50) - 1); WR(0x50, _v); setZN(_v); }
+nmi_poll("b4_entry_B792");
+cycles += 3;
+b4_entry_B7BD(); return;
 }
 static void __attribute__((used)) b4_entry_B7BD(void) {
 nmi_poll("b4_entry_B7BD");
