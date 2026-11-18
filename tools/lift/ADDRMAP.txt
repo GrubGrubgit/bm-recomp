@@ -256,6 +256,7 @@
 8AB2 6 entry_8AB2
 8AED 6 entry_8AED
 80C9 4 entry_80C9
+8A6C 4 entry_8A6C
 8AF1 4 entry_8AF1
 8AF4 4 entry_8AF4
 8AFF 4 entry_8AFF
@@ -1348,6 +1349,9 @@ B09E 4 entry_B09E
 B0AE 4 LB0AE
 B0DF 4 entry_B0DF
 B0EF 4 LB0EF
+B102 4 entry_B102
+B132 4 entry_B132
+B135 4 entry_B135
 B118 6 entry_B118
 B11A 6 entry_B11A
 B139 6 LB139
@@ -1448,6 +1452,9 @@ B4DB 4 LB4DB
 B4DD 4 entry_B4DD
 B4DD 6 entry_B4DD
 B4E0 4 LB4E0
+B4E4 4 entry_B4E4
+B4F1 4 entry_B4F1
+B563 4 entry_B563
 B4EE 6 LB4EE
 B508 6 entry_B508
 B518 6 LB518
@@ -1701,6 +1708,7 @@ C027 7 entry_C027
 C039 7 entry_C039
 C03F 7 entry_C03F
 C05A 7 entry_C05A
+C05D 7 entry_C05D
 C060 7 entry_C060
 C063 7 entry_C063
 C066 7 entry_C066
@@ -1762,9 +1770,11 @@ C1E6 7 entry_C1E6
 C1EC 7 entry_C1EC
 C1EF 7 entry_C1EF
 C1F5 7 entry_C1F5
+C1FE 7 entry_C1FE
 C204 7 entry_C204
 C207 7 entry_C207
 C20A 7 entry_C20A
+C20D 7 entry_C20D
 C216 7 entry_C216
 C222 7 entry_C222
 C24F 7 entry_C24F

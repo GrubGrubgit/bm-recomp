@@ -1,0 +1,82 @@
+#include "runtime.h"
+static void b4_entry_B563(void);
+static void b7_entry_C1FE(void);
+static void b7_entry_C20D(void);
+static void b4_LB58D(void);
+static void b7_entry_E1D5(void);
+static void b7_entry_E196(void);
+static void b7_entry_C01E(void);
+static void b7_entry_C0FF(void);
+static void b7_entry_C114(void);
+static void __attribute__((used)) b7_entry_C1FE(void) {
+nmi_poll("b7_entry_C1FE");
+nmi_poll("b7_entry_C1FE");
+cycles += 3;
+b7_entry_E1D5(); return;
+}
+static void __attribute__((used)) b7_entry_C20D(void) {
+nmi_poll("b7_entry_C20D");
+nmi_poll("b7_entry_C20D");
+cycles += 3;
+b7_entry_E196(); return;
+}
+static void __attribute__((used)) b4_entry_B563(void) {
+nmi_poll("b4_entry_B563");
+cycles += 2;
+A = 0x80; setZN(A);
+cycles += 3;
+WR(0x42, A);
+cycles += 2;
+A = 0x80; setZN(A);
+cycles += 3;
+WR(0x43, A);
+A = RD(0x11); setZN(A);
+cycles += 3;
+cycles += 2;
+P = (uint8_t)((P & 0x7C) | ((A & 0x80) ? 1 : 0)); A = (uint8_t)(A << 1); setZN(A);
+cycles += 2;
+P = (uint8_t)((P & 0x7C) | ((A & 0x80) ? 1 : 0)); A = (uint8_t)(A << 1); setZN(A);
+cycles += 2;
+P = (uint8_t)((P & 0x7C) | ((A & 0x80) ? 1 : 0)); A = (uint8_t)(A << 1); setZN(A);
+cycles += 2;
+Y = 0x20; setZN(Y);
+nmi_poll("b4_entry_B563");
+cycles += 6;
+S = (uint8_t)(S - 2);
+{ uint8_t _uw_s = S; b7_entry_C1FE(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, "UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X\n", "b4_entry_B563", "b7_entry_C1FE", S, _uw_s); } if (uw_abort) return; }
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B563");
+nmi_poll("b4_entry_B563");
+cycles += 6;
+S = (uint8_t)(S - 2);
+{ uint8_t _uw_s = S; b7_entry_C20D(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, "UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X\n", "b4_entry_B563", "b7_entry_C20D", S, _uw_s); } if (uw_abort) return; }
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B563");
+cycles += 3;
+WR(0x4D, A);
+nmi_poll("b4_entry_B563");
+cycles += 6;
+S = (uint8_t)(S - 2);
+{ uint8_t _uw_s = S; b7_entry_C01E(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, "UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X\n", "b4_entry_B563", "b7_entry_C01E", S, _uw_s); } if (uw_abort) return; }
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B563");
+cycles += 2;
+A = 0x10; setZN(A);
+cycles += 3;
+WR(0x40, A);
+cycles += 2;
+A = 0x10; setZN(A);
+cycles += 3;
+WR(0x41, A);
+nmi_poll("b4_entry_B563");
+cycles += 6;
+S = (uint8_t)(S - 2);
+{ uint8_t _uw_s = S; b7_entry_C0FF(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, "UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X\n", "b4_entry_B563", "b7_entry_C0FF", S, _uw_s); } if (uw_abort) return; }
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B563");
+cycles += 2;
+if (((P & 0x02))) { cycles += 1; b4_LB58D(); return; }
+nmi_poll("b4_entry_B563");
+cycles += 3;
+b7_entry_C114(); return;
+}
