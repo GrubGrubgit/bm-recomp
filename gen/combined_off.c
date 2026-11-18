@@ -23953,7 +23953,7 @@ cycles += 2;
 cycles += 3;
 WR(0xC5, A);
 nmi_poll("b4_entry_8C46");
-cycles += 6;
+cycles += 9; /* SLOT-JSR: JSR6+JMP3 */
 S = (uint8_t)(S - 2);
 b7_entry_D7B6();
 S = (uint8_t)(S + 2);
@@ -24028,7 +24028,7 @@ b7_entry_C216();
 S = (uint8_t)(S + 2);
 nmi_poll("b4_entry_8C71");
 nmi_poll("b4_entry_8C71");
-cycles += 6;
+cycles += 9; /* SLOT-JSR: JSR6+JMP3 */
 S = (uint8_t)(S - 2);
 b7_entry_D7B6();
 S = (uint8_t)(S + 2);
@@ -25081,7 +25081,7 @@ A = 0x40; setZN(A);
 cycles += 3;
 WR(0x43, A);
 nmi_poll("b4_entry_8FC3");
-cycles += 6;
+cycles += 9; /* SLOT-JSR: JSR6+JMP3 */
 S = (uint8_t)(S - 2);
 b7_entry_D324();
 S = (uint8_t)(S + 2);
@@ -25530,7 +25530,7 @@ A = 0x40; setZN(A);
 cycles += 3;
 WR(0x43, A);
 nmi_poll("b4_entry_923F");
-cycles += 6;
+cycles += 9; /* SLOT-JSR: JSR6+JMP3 */
 S = (uint8_t)(S - 2);
 b7_entry_D324();
 S = (uint8_t)(S + 2);
@@ -25547,7 +25547,7 @@ P = (uint8_t)((P & 0x7C) | (A & 1)); A = (uint8_t)(A >> 1); setZN(A);
 cycles += 2;
 if ((!(P & 0x01))) { cycles += 1; b4_L9255(); return; }
 nmi_poll("b4_entry_924A");
-cycles += 6;
+cycles += 9; /* SLOT-JSR: JSR6+JMP3 */
 S = (uint8_t)(S - 2);
 b7_entry_D37D();
 S = (uint8_t)(S + 2);
@@ -33678,7 +33678,7 @@ A = 0x80; setZN(A);
 cycles += 3;
 WR(0x43, A);
 nmi_poll("b4_entry_AFF9");
-cycles += 6;
+cycles += 9; /* SLOT-JSR: JSR6+JMP3 */
 S = (uint8_t)(S - 2);
 b7_entry_D324();
 S = (uint8_t)(S + 2);

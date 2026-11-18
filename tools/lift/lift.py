@@ -618,16 +618,18 @@ for raw in lines:
         else:
             _callee = '%s_%s' % (bank, arg)
         _caller = '%s_%s' % (bank, cur)
+        _a0 = labaddr_opt(arg)
+        _jsrcyc = 'cycles += 9; /* SLOT-JSR: JSR6+JMP3 */' if (_a0 is not None and _a0 in slots and _xr is not None) else 'cycles += 6;'
         if unwind_mode == 'off':
             out.append('nmi_poll("%s");' % _caller)
-            out.append('cycles += 6;')
+            out.append(_jsrcyc)
             out.append('S = (uint8_t)(S - 2);')
             out.append(_callee + '();')
             out.append('S = (uint8_t)(S + 2);')
             out.append('nmi_poll("%s");' % _caller)
         elif unwind_mode == 'log':
             out.append('nmi_poll("%s");' % _caller)
-            out.append('cycles += 6;')
+            out.append(_jsrcyc)
             out.append('S = (uint8_t)(S - 2);')
             out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s) fprintf(stderr, ' + chr(34) + 'UNWIND caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); }')
             out.append('S = (uint8_t)(S + 2);')
@@ -635,7 +637,7 @@ for raw in lines:
         elif unwind_mode in ('enforce', 'resume'):
             _rec = ('uw_caller = "' + _caller + '"; uw_callee = "' + _callee + '"; ') if unwind_mode == 'resume' else ''
             out.append('nmi_poll("%s");' % _caller)
-            out.append('cycles += 6;')
+            out.append(_jsrcyc)
             out.append('S = (uint8_t)(S - 2);')
             if unwind_mode == 'resume':
                 fn_sites.append(len(out))
