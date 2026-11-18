@@ -1,0 +1,64 @@
+entry_9072:
+        lda     #$40
+        sta     $42
+        lda     #$40
+        sta     $43
+        jsr     entry_8FF3
+        jsr     entry_9007
+        dec     $53
+        beq     entry_90E8
+        lda     $BB
+        lsr     a
+        bcc     L908C
+        jsr     entry_C01E
+L908C:  jsr     LC024
+        lda     $11
+        lsr     a
+        bcs     L90A2
+        dec     $50
+        bne     L90A2
+        lda     #$18
+        sta     $50
+        dec     $51
+        bne     L90A2
+        inc     $51
+L90A2:  lda     $57
+        lsr     a
+        bcs     L90AF
+        lda     $47
+        clc
+        adc     $51
+        jmp     L90B4
+L90AF:  lda     $47
+        sec
+        sbc     $51
+L90B4:  sta     $47
+        pha
+        jsr     LC0CC
+        sta     $4C
+        pla
+        jsr     LC201
+        sta     $4D
+        lda     #$10
+        sta     $40
+        lda     #$10
+        sta     $41
+        jsr     entry_C0FF
+        bne     entry_90E8
+        lda     #$01
+        jsr     entry_C1E6
+        lda     $47
+        pha
+        clc
+        adc     #$60
+        asl     a
+        rol     a
+        rol     a
+        and     #$03
+        sta     $47
+        jsr     entry_8F21
+        pla
+        sta     $47
+        rts
+entry_90E8:
+        jmp     entry_C117

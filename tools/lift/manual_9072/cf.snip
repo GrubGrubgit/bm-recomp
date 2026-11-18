@@ -1,0 +1,45 @@
+entry_CF10:
+        clc
+        adc     #$40
+        tay
+        and     #$7F
+        cmp     #$40
+        bcc     LCF1F
+        eor     #$FF
+        clc
+        adc     #$81
+LCF1F:  tax
+        tya
+        bmi     LCF27
+        lda     $CF2E,x
+        rts
+LCF27:  lda     #$00
+        sec
+        sbc     $CF2E,x
+        rts
+entry_CF13:
+        tay
+        and     #$7F
+        cmp     #$40
+        bcc     LCF1F3
+        eor     #$FF
+        clc
+        adc     #$81
+        tax
+        tya
+        bmi     LCF273
+        lda     $CF2E,x
+        rts
+LCF1F3: tax
+        tya
+        bmi     LCF273
+        lda     $CF2E,x
+        rts
+LCF273: lda     #$00
+        sec
+        sbc     $CF2E,x
+        rts
+LC0CC:
+        jmp     entry_CF10
+LC201:
+        jmp     entry_CF13

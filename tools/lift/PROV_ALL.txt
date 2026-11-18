@@ -441,6 +441,7 @@ entry_8FF3 4
 entry_9007 4
 entry_9014 4
 entry_903E 4
+entry_9072 4
 entry_9060 4
 entry_90C2 4
 entry_9137 4
@@ -1846,6 +1847,8 @@ LCEB1 7
 LCEB3 7
 LCEB4 7
 LCF0F 7
+entry_CF10 7
+entry_CF13 7
 LCF6F 7
 LCF72 7
 LCF7E 7
