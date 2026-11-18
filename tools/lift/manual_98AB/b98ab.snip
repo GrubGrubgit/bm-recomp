@@ -1,0 +1,76 @@
+entry_98A3:
+        beq     entry_98A5
+entry_98A5:
+        bpl     entry_98A7
+entry_98A7:
+        beq     entry_98F5
+        ora     $99,x
+entry_98AB:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        dec     $51
+        bne     L98BD
+        jsr     entry_D790
+        jmp     entry_9B95
+L98BD:  lda     $52
+        beq     entry_9916
+        ldx     $50
+        lda     $0400,x
+        bne     L98CC
+        sta     $52
+        beq     entry_9916
+L98CC:  lda     $0403,x
+        sec
+        sbc     $49
+        asl     a
+        beq     L98E9
+        bmi     L98DF
+        lda     $4C
+        clc
+        adc     #$02
+        jmp     L98E4
+L98DF:  lda     $4C
+        sec
+        sbc     #$02
+L98E4:  sta     $4C
+        jmp     L98F0
+L98E9:  lda     #$10
+        ldx     #$4C
+        jsr     entry_EB14
+L98F0:  ldx     $50
+        lda     $0405,x
+entry_98F5:  sec
+        sbc     $4B
+        asl     a
+        beq     L990F
+        bmi     L9905
+        lda     $4D
+        clc
+        adc     #$02
+        jmp     L990A
+L9905:  lda     $4D
+        sec
+        sbc     #$02
+L990A:  sta     $4D
+        jmp     entry_9916
+L990F:  lda     #$10
+        ldx     #$4D
+        jsr     entry_EB14
+entry_9916:
+        rts
+entry_9B95:
+        nop
+        nop
+        nop
+        lda     #$00
+        sta     $4F
+        lda     #$0A
+        sta     $51
+        lda     #$4B
+        sta     $46
+        lda     #$28
+        jsr     entry_DECC
+        rts
+
