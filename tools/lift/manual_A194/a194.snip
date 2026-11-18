@@ -1,0 +1,56 @@
+entry_A164:
+        jsr     entry_DECC
+        lda     #$06
+        jsr     entry_A2E9
+        lda     #$63
+        sta     $46
+        lda     #$01
+        sta     $50
+        lda     #$E8
+        sta     $4D
+        lda     #$11
+        sta     $4C
+        jsr     entry_E0ED
+        bpl     LA188
+        lda     #$00
+        sec
+        sbc     $4C
+        sta     $4C
+LA188:  lda     #$00
+        sta     $51
+        sta     $47
+        sta     $52
+LA190:  rts
+entry_A191:
+        jmp     LA1AC
+entry_A194:
+        jsr     entry_EB71
+        and     #$1F
+        clc
+        adc     #$B0
+        sta     $47
+        lda     #$40
+        sta     $51
+        ldy     #$20
+        jsr     entry_E1BD
+        jsr     entry_D2B9
+        inc     $46
+LA1AC:  rts
+entry_A1AD:
+        jmp     entry_A1CC
+entry_A1B0:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        dec     $51
+        bne     LA1BF
+        jmp     entry_D81C
+LA1BF:  lda     #$02
+        ldx     #$00
+        jsr     entry_DFD1
+        jsr     entry_D2DE
+        jsr     entry_D2FE
+entry_A1CC:
+        rts
+

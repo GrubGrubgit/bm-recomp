@@ -1057,6 +1057,9 @@ LA136 6
 LA14D 6
 LA15F 6
 LA188 6
+LA190 6
+LA1AC 6
+LA1BF 6
 LA1EB 6
 LA1EE 6
 LA231 6
@@ -1478,6 +1481,11 @@ entry_A121 6
 entry_A125 6
 entry_A13B 6
 entry_A13D 6
+entry_A164 6
+entry_A191 6
+entry_A194 6
+entry_A1AD 6
+entry_A1B0 6
 entry_A1CC 6
 entry_A1F4 6
 entry_A1F9 6
