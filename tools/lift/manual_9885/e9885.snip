@@ -1,0 +1,15 @@
+entry_9885:
+        jsr     entry_D790
+        jsr     entry_9707
+        lda     L98A4,x
+        sta     $4C
+        lda     L98A3,x
+        sta     $4D
+        inc     $46
+        lda     #$C0
+        sta     $51
+        sta     $52
+        lda     #$2F
+        jsr     entry_DECC
+        rts
+

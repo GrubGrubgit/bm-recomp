@@ -1407,6 +1407,7 @@ entry_97A2 6
 entry_97C6 6
 entry_9838 6
 entry_983E 6
+entry_9885 6
 entry_9916 6
 entry_9919 6
 entry_99B0 6
@@ -1425,6 +1426,14 @@ entry_9BED 6
 entry_9BF0 6
 entry_9BF4 6
 entry_9C1F 6
+entry_9C26 6
+entry_9C2D 6
+entry_9C34 6
+entry_9C3B 6
+entry_9C42 6
+entry_9C49 6
+entry_9C50 6
+entry_9C57 6
 entry_9C68 6
 entry_9C6B 6
 entry_9C6E 6

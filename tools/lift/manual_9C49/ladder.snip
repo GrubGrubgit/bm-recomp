@@ -1,0 +1,62 @@
+entry_9C1F:
+        nop
+        nop
+        nop
+        lda     #$00
+        beq      entry_9C5B
+entry_9C26:
+        nop
+        nop
+        nop
+        lda     #$01
+        bne      entry_9C5B
+entry_9C2D:
+        nop
+        nop
+        nop
+        lda     #$02
+        bne      entry_9C5B
+entry_9C34:
+        nop
+        nop
+        nop
+        lda     #$03
+        bne      entry_9C5B
+entry_9C3B:
+        nop
+        nop
+        nop
+        lda     #$04
+        bne      entry_9C5B
+entry_9C42:
+        nop
+        nop
+        nop
+        lda     #$05
+        bne      entry_9C5B
+entry_9C49:
+        nop
+        nop
+        nop
+        lda     #$06
+        bne      entry_9C5B
+entry_9C50:
+        nop
+        nop
+        nop
+        lda     #$07
+        bne      entry_9C5B
+entry_9C57:
+        nop
+        nop
+        nop
+        lda     #$08
+        bne      entry_9C5B
+entry_9C5B:
+        sta     $50
+        lda     #$35
+        sta     $46
+        lda     #$FF
+        sta     $51
+        jmp     entry_D2B9
+
