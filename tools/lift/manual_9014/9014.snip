@@ -1,0 +1,20 @@
+entry_9014:
+        lda     $57
+        cmp     #$01
+        bne     L901F
+        lda     #$06
+        sta     $46
+        rts
+L901F:  cmp     #$05
+        bcc     L9026
+        jmp     entry_C114
+L9026:  jsr     entry_8E95
+        lda     #$00
+        sta     $4C
+        sta     $4D
+        lda     #$03
+        sta     $51
+        inc     $46
+        lda     #$1B
+        jsr     entry_C216
+        rts
