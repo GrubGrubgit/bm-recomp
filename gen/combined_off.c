@@ -21157,6 +21157,7 @@ static void b4_entry_B785(void);
 static void b4_entry_B78F(void);
 static void b4_entry_B792(void);
 static void b4_entry_9014(void);
+static void b4_entry_903E(void);
 static void b4_L960E(void);
 static void b4_entry_9633(void);
 static void b4_entry_96BF(void);
@@ -22171,6 +22172,7 @@ case 0xB785: if (swbank == prg[4]) b4_entry_B785(); else __builtin_trap(); break
 case 0xB78F: if (swbank == prg[4]) b4_entry_B78F(); else __builtin_trap(); break;
 case 0xB792: if (swbank == prg[4]) b4_entry_B792(); else __builtin_trap(); break;
 case 0x9014: if (swbank == prg[4]) b4_entry_9014(); else __builtin_trap(); break;
+case 0x903E: if (swbank == prg[4]) b4_entry_903E(); else __builtin_trap(); break;
 case 0xAF45: if (swbank == prg[4]) b4_entry_AF45(); else __builtin_trap(); break;
 case 0xAF48: if (swbank == prg[4]) b4_entry_AF48(); else __builtin_trap(); break;
 case 0xAF67: if (swbank == prg[4]) b4_entry_AF67(); else __builtin_trap(); break;
@@ -23417,6 +23419,7 @@ static void b4_entry_B785(void);
 static void b4_entry_B78F(void);
 static void b4_entry_B792(void);
 static void b4_entry_9014(void);
+static void b4_entry_903E(void);
 static void b4_entry_B7BD(void);
 static void b4_entry_B82C(void);
 static void b4_entry_B82F(void);
@@ -36106,6 +36109,43 @@ S = (uint8_t)(S - 2);
 b7_entry_C216();
 S = (uint8_t)(S + 2);
 nmi_poll("b4_entry_9014");
+cycles += 6;
+return;
+}
+static void __attribute__((used)) b4_entry_903E(void) {
+nmi_poll("b4_entry_903E");
+cycles += 2;
+A = 0x40; setZN(A);
+cycles += 3;
+WR(0x42, A);
+cycles += 2;
+A = 0x40; setZN(A);
+cycles += 3;
+WR(0x43, A);
+cycles += 5;
+{ uint8_t _v = (uint8_t)(RD(0x51) - 1); WR(0x51, _v); setZN(_v); }
+cycles += 2;
+if ((!(P & 0x02))) { cycles += 1; b4_entry_9060(); return; }
+cycles += 5;
+{ uint8_t _v = (uint8_t)(RD(0x46) + 1); WR(0x46, _v); setZN(_v); }
+cycles += 2;
+A = 0x04; setZN(A);
+cycles += 3;
+WR(0x51, A);
+cycles += 2;
+A = 0x20; setZN(A);
+cycles += 3;
+WR(0x50, A);
+cycles += 2;
+A = 0x00; setZN(A);
+cycles += 3;
+WR(0x53, A);
+X = RD(0x47); setZN(X);
+cycles += 3;
+A = RD((uint16_t)(0x906B + X)); setZN(A);
+cycles += 4 + ((((0x906B + X) & 0xFF00) != 0x9000) ? 1 : 0);
+cycles += 3;
+WR(0x47, A);
 cycles += 6;
 return;
 }

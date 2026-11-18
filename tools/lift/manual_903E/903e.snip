@@ -1,0 +1,20 @@
+entry_903E:
+        lda     #$40
+        sta     $42
+        lda     #$40
+        sta     $43
+        dec     $51
+        bne     entry_9060
+        inc     $46
+        lda     #$04
+        sta     $51
+        lda     #$20
+        sta     $50
+        lda     #$00
+        sta     $53
+        ldx     $47
+        lda     $906B,x
+        sta     $47
+        rts
+entry_9060:
+        rts
