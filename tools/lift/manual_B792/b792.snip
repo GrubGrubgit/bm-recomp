@@ -1,0 +1,24 @@
+entry_B792:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        lda     $50
+        bne     LB7B0
+        jsr     LC04E
+        bne     entry_B7BD
+        inc     $50
+        lda     #$00
+        sta     $4D
+        jsr     LC045
+        bmi     LB7B2
+        lda     #$38
+LB7B0:  bne     LB7B4
+LB7B2:  lda     #$C8
+LB7B4:  sta     $4C
+        jsr     LC02D
+        beq     entry_B7BD
+        dec     $50
+        jmp     entry_B7BD
+entry_B7BD:
+        rts
