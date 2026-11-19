@@ -673,6 +673,10 @@ entry_BC9F 4
 entry_BCC5 4
 entry_BD24 4
 entry_BD4A 4
+entry_BD5C 4
+entry_BD5F 4
+entry_BD69 4
+entry_BD6C 4
 entry_BD9D 4
 entry_BDE0 4
 entry_BE0E 4

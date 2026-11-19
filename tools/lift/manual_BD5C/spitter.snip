@@ -1,0 +1,36 @@
+entry_BD5C:
+        jmp     LBD68
+entry_BD5F:
+        lda     #$00
+        sta     $52
+        lda     #$0D
+        jsr     entry_B2B4
+LBD68:  rts
+entry_BD69:
+        jmp     entry_BD9D
+entry_BD6C:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        lda     $52
+        beq     LBD7A
+        dec     $52
+LBD7A:  jsr     LC045
+        bpl     LBD84
+        eor     #$FF
+        clc
+        adc     #$01
+LBD84:  sta     $00
+        jsr     LC04E
+        bpl     LBD90
+        eor     #$FF
+        clc
+        adc     #$01
+LBD90:  cmp     $00
+        bcs     LBD96
+        lda     $00
+LBD96:  cmp     #$02
+        bcs     entry_BD9D
+        jsr     entry_BE3E
+        jmp     entry_BD9D
