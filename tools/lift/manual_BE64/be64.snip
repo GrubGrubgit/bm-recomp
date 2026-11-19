@@ -1,0 +1,25 @@
+entry_BE61:
+        jmp     entry_BE95
+entry_BE64:
+        lda     #$C0
+        sta     $42
+        lda     #$C0
+        sta     $43
+        jsr     entry_C048
+        sta     $4C
+        lda     #$3F
+        ldx     #$4C
+        jsr     entry_C14D
+        ldx     #$03
+        jsr     entry_C20A
+        sta     $4C
+        jsr     entry_C051
+        sta     $4D
+        lda     #$3F
+        ldx     #$4D
+        jsr     entry_C14D
+        ldx     #$03
+        jsr     entry_C20A
+        sta     $4D
+        jsr     LC02D
+        jmp     entry_BE95

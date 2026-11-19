@@ -688,6 +688,8 @@ entry_BDEA 4
 entry_BE0E 4
 entry_BE54 4
 entry_BE57 4
+entry_BE61 4
+entry_BE64 4
 entry_BE3E 4
 entry_BE95 4
 entry_BF52 4
@@ -2272,6 +2274,8 @@ entry_C01E 7
 entry_C027 7
 entry_C039 7
 entry_C03F 7
+entry_C048 7
+entry_C051 7
 entry_C05A 7
 entry_C05D 7
 entry_C060 7

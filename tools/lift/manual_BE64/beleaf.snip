@@ -1,0 +1,44 @@
+entry_C048:
+        jmp     entry_E107
+entry_C051:
+        jmp     entry_E120
+entry_E107:
+        lda     $00
+        pha
+        jsr     entry_E0ED
+        asl     a
+        asl     a
+        asl     a
+        asl     a
+        sta     $00
+        txa
+        lsr     a
+        lsr     a
+        lsr     a
+        lsr     a
+        ora     $00
+        tax
+        pla
+        sta     $00
+        txa
+        rts
+entry_E120:
+        lda     $00
+        pha
+        jsr     entry_E0FA
+        asl     a
+        asl     a
+        asl     a
+        asl     a
+        sta     $00
+        txa
+        lsr     a
+        lsr     a
+        lsr     a
+        lsr     a
+        ora     $00
+        tax
+        pla
+        sta     $00
+        txa
+        rts

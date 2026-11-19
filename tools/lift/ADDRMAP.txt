@@ -1699,6 +1699,8 @@ BE0A 0 entry_BE0A
 BE0E 4 entry_BE0E
 BE54 4 entry_BE54
 BE57 4 entry_BE57
+BE61 4 entry_BE61
+BE64 4 entry_BE64
 BE16 5 LBE16
 BE17 5 entry_BE17
 BE1A 0 LBE1A
@@ -1754,6 +1756,8 @@ C01E 7 entry_C01E
 C027 7 entry_C027
 C039 7 entry_C039
 C03F 7 entry_C03F
+C048 7 entry_C048
+C051 7 entry_C051
 C05A 7 entry_C05A
 C05D 7 entry_C05D
 C060 7 entry_C060
