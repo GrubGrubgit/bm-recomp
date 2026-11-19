@@ -1,0 +1,55 @@
+entry_DC51:
+        lda     $39
+        lsr     a
+        bcs     LDC64
+        lda     $39
+        eor     $05
+        and     #$02
+        beq     LDC64
+        lda     $39
+        beq     LDC81
+        bne     LDC9A
+LDC64:  ldx     $0D
+        jsr     entry_DC47
+        inx
+        jsr     entry_DC47
+        txa
+        clc
+        adc     #$10
+        tax
+        jsr     entry_DC47
+        inx
+        jsr     entry_DC47
+        txa
+        clc
+        adc     #$10
+        tax
+        lda     L0000
+        rts
+LDC81:  ldx     $0D
+        dex
+        jsr     entry_DC47
+        inx
+        jsr     entry_DC47
+        txa
+        clc
+        adc     #$11
+        tax
+        jsr     entry_DC47
+        inx
+        jsr     entry_DC47
+        lda     L0000
+        rts
+LDC9A:  ldx     $0D
+        jsr     entry_DC47
+        inx
+        jsr     entry_DC47
+        txa
+        clc
+        adc     #$11
+        tax
+        jsr     entry_DC47
+        inx
+        jsr     entry_DC47
+        lda     L0000
+        rts
