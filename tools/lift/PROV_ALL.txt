@@ -1570,6 +1570,7 @@ entry_A56E 6
 entry_A571 4
 entry_A574 4
 entry_A589 4
+entry_A58C 4
 entry_A580 6
 entry_A5C2 6
 entry_A5C5 6

@@ -1,0 +1,153 @@
+entry_A58C:
+        jsr     entry_A07B
+        bne     LA5EF
+        lda     $53
+        beq     LA5EF
+        lda     $11
+        and     #$3F
+        bne     LA5C1
+        lda     $0403
+        sec
+        sbc     $49
+        asl     a
+        beq     LA5AC
+        bmi     LA5AA
+        lda     #$06
+        bne     LA5AC
+LA5AA:  lda     #$FA
+LA5AC:  sta     $4C
+        lda     $0405
+        sec
+        sbc     $4B
+        asl     a
+        beq     LA5BF
+        bmi     LA5BD
+        lda     #$06
+        bne     LA5BF
+LA5BD:  lda     #$FA
+LA5BF:  sta     $4D
+LA5C1:  jsr     entry_C03F
+        ldx     #$04
+        ldy     #$06
+        jsr     entry_C012
+        beq     LA5DD
+        lda     #$00
+        sta     $50
+        lda     $4D
+        bmi     LA5D9
+        lda     #$FC
+        bne     LA5DB
+LA5D9:  lda     #$04
+LA5DB:  sta     $4D
+LA5DD:  jsr     entry_C027
+        ldx     #$04
+        ldy     #$06
+        jsr     entry_C00C
+        lda     $11
+        and     #$0F
+        bne     LA5EF
+        inc     $51
+LA5EF:  lda     #$10
+        sta     $40
+        lda     #$10
+        sta     $41
+        jsr     entry_C0FF
+        jsr     entry_A65A
+        lda     $03FD
+        bne     LA628
+        lda     $4F
+        cmp     #$06
+        bcs     LA628
+        lda     $53
+        beq     LA628
+        lda     #$20
+        sta     $40
+        lda     #$20
+        sta     $41
+        lda     #$20
+        jsr     entry_C144
+        bne     LA620
+        lda     #$11
+        jsr     entry_C216
+LA620:  lda     $53
+        bne     LA628
+        lda     #$C0
+        sta     $4F
+LA628:  lda     $3F
+        cmp     #$20
+        bcs     LA632
+        lda     #$04
+        bne     LA638
+LA632:  cmp     #$B0
+        bcc     LA63E
+        lda     #$FC
+LA638:  sta     $4D
+        lda     #$00
+        sta     $50
+LA63E:  lda     $10
+        lsr     a
+        lsr     a
+        lsr     a
+        and     #$07
+        bne     LA64B
+        lda     #$02
+        bne     LA64D
+LA64B:  and     #$01
+LA64D:  sta     $45
+        lda     $3F
+        clc
+        adc     #$18
+        sta     $3F
+        jsr     entry_9EB3
+        rts
+entry_A65A:
+        lda     #$E0
+LA65C:  pha
+        jsr     entry_A667
+        pla
+        sec
+        sbc     #$20
+        bcs     LA65C
+        rts
+entry_A667:
+        clc
+        adc     $11
+        sta     $00
+        lda     $3F
+        pha
+        lda     $3E
+        pha
+        lda     $00
+        jsr     entry_C0D2
+        sta     $01
+        clc
+        adc     $3E
+        sta     $3E
+        ror     a
+        eor     $01
+        bmi     LA6AC
+        lda     $00
+        clc
+        adc     $51
+        jsr     entry_C207
+        sta     $01
+        clc
+        adc     $3F
+        sta     $3F
+        ror     a
+        eor     $01
+        bmi     LA6AC
+        lda     $03FD
+        bne     LA6A1
+        lda     #$20
+        jsr     entry_C141
+LA6A1:  lda     #$02
+        sta     $44
+        lda     #$A7
+        sta     $45
+        jsr     entry_C18C
+LA6AC:  pla
+        sta     $3E
+        pla
+        sta     $3F
+        rts
