@@ -679,6 +679,8 @@ entry_BD69 4
 entry_BD6C 4
 entry_BD9D 4
 entry_BDE0 4
+entry_BDE7 4
+entry_BDEA 4
 entry_BE0E 4
 entry_BE3E 4
 entry_BE95 4

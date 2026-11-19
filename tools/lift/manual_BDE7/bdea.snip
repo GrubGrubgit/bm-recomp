@@ -1,0 +1,21 @@
+entry_BDE7:
+        jmp     entry_BE0E
+entry_BDEA:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        jsr     entry_C12F
+        beq     LBE01
+        lda     #$54
+        sta     $0400,x
+        lda     $50
+        sta     $040B,x
+LBE01:  clc
+        lda     $50
+        adc     #$08
+        sta     $50
+        dec     $51
+        bne     entry_BE0E
+        dec     $46
+        jmp     entry_BE0E
