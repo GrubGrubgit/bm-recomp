@@ -1,0 +1,54 @@
+entry_92AC:
+        jmp     entry_92B6
+entry_92B6:
+        lda     #$18
+        sta     $40
+        lda     #$18
+        sta     $41
+        jsr     entry_C0FF
+        beq     LA2C6
+        jmp     entry_C117
+LA2C6:  lda     #$02
+        jsr     entry_C1E6
+        jsr     entry_C138
+        jsr     entry_C0A2
+        beq     LA31E
+        lda     $51
+        lsr     a
+        tax
+        lda     L9324,x
+        beq     LA31E
+        sta     $45
+        lda     L931F,x
+        sta     $44
+        lda     $3F
+        sec
+        sbc     #$06
+        sta     $3F
+        jsr     entry_C19E
+        jsr     entry_C1B3
+        and     #$1F
+        sec
+        sbc     #$10
+        clc
+        adc     $3E
+        sta     $3E
+        jsr     entry_C1B3
+        and     #$1F
+        sec
+        sbc     #$10
+        clc
+        adc     $3F
+        sta     $3F
+        lda     #$00
+        sta     $44
+        lda     $10
+        lsr     a
+        bcs     LA317
+        lda     #$5A
+        sta     $45
+        jmp     entry_C189
+LA317:  lda     #$5C
+        sta     $45
+        jmp     entry_C1AD
+LA31E:  rts
