@@ -1,5 +1,6 @@
 #include "runtime.h"
 static void b4_entry_9FF1(void);
+static void b4_entry_A058(void);
 static void b7_entry_C060(void);
 static void b7_entry_C0FF(void);
 static void b7_entry_C11A(void);
@@ -156,9 +157,14 @@ nmi_poll("b4_entry_9FF1");
 A = 0x07; setZN(A);
 cycles += 2;
 nmi_poll("b4_entry_9FF1");
-b4_LA04D:;
 nmi_poll("b4_entry_9FF1");
 cycles += 3;
 b7_entry_C11A(); return;
 nmi_poll("b4_entry_9FF1");
+b4_LA04D:;
+nmi_poll("b4_entry_9FF1");
+cycles += 3;
+b4_entry_A058(); return;
+nmi_poll("b4_entry_9FF1");
 }
+static void b4_entry_A058(void) { __builtin_trap(); }

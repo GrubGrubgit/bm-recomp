@@ -47964,10 +47964,14 @@ nmi_poll("b4_entry_9FF1");
 A = 0x07; setZN(A);
 cycles += 2;
 nmi_poll("b4_entry_9FF1");
-b4_LA04D:;
 nmi_poll("b4_entry_9FF1");
 cycles += 3;
 b7_entry_C11A(); return;
+nmi_poll("b4_entry_9FF1");
+b4_LA04D:;
+nmi_poll("b4_entry_9FF1");
+cycles += 3;
+b4_entry_A058(); return;
 nmi_poll("b4_entry_9FF1");
 }
 static void __attribute__((used)) b4_entry_9FEE(void) {
