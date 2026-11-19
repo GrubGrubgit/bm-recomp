@@ -686,6 +686,8 @@ entry_BDE0 4
 entry_BDE7 4
 entry_BDEA 4
 entry_BE0E 4
+entry_BE54 4
+entry_BE57 4
 entry_BE3E 4
 entry_BE95 4
 entry_BF52 4

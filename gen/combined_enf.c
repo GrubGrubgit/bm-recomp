@@ -27238,6 +27238,8 @@ static void b4_entry_B074(void);
 static void b4_entry_B077(void);
 static void b4_entry_B08B(void);
 static void b4_entry_B08E(void);
+static void b4_entry_BE54(void);
+static void b4_entry_BE57(void);
 static void b4_L960E(void);
 static void b4_entry_9633(void);
 static void b4_entry_96BF(void);
@@ -28517,6 +28519,8 @@ case 0xb074: if (swbank == prg[4]) b4_entry_B074(); else __builtin_trap(); break
 case 0xb077: if (swbank == prg[4]) b4_entry_B077(); else __builtin_trap(); break;
 case 0xb08b: if (swbank == prg[4]) b4_entry_B08B(); else __builtin_trap(); break;
 case 0xb08e: if (swbank == prg[4]) b4_entry_B08E(); else __builtin_trap(); break;
+case 0xbe54: if (swbank == prg[4]) b4_entry_BE54(); else __builtin_trap(); break;
+case 0xbe57: if (swbank == prg[4]) b4_entry_BE57(); else __builtin_trap(); break;
 case 0xB64D: if (swbank == prg[4]) b4_entry_B64D(); else __builtin_trap(); break;
 case 0xB650: if (swbank == prg[4]) b4_entry_B650(); else __builtin_trap(); break;
 case 0xB65E: if (swbank == prg[4]) b4_entry_B65E(); else __builtin_trap(); break;
@@ -29881,6 +29885,8 @@ static void b4_entry_B074(void);
 static void b4_entry_B077(void);
 static void b4_entry_B08B(void);
 static void b4_entry_B08E(void);
+static void b4_entry_BE54(void);
+static void b4_entry_BE57(void);
 static void b4_entry_B7BD(void);
 static void b4_entry_B82C(void);
 static void b4_entry_B82F(void);
@@ -47191,6 +47197,36 @@ nmi_poll("b4_entry_B08E");
 cycles += 3;
 b7_entry_C114(); return;
 nmi_poll("b4_entry_B08E");
+}
+static void __attribute__((used)) b4_entry_BE54(void) {
+nmi_poll("b4_entry_BE54");
+nmi_poll("b4_entry_BE54");
+cycles += 3;
+cycles += 6;
+return;
+nmi_poll("b4_entry_BE54");
+}
+static void __attribute__((used)) b4_entry_BE57(void) {
+nmi_poll("b4_entry_BE57");
+A = 0x00; setZN(A);
+cycles += 2;
+nmi_poll("b4_entry_BE57");
+WR(0x4C, A);
+cycles += 3;
+nmi_poll("b4_entry_BE57");
+A = 0x0E; setZN(A);
+cycles += 2;
+nmi_poll("b4_entry_BE57");
+nmi_poll("b4_entry_BE57");
+cycles += 6;
+S = (uint8_t)(S - 2);
+{ uint8_t _uw_s = S; b4_entry_B2B4(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, "UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X\n", "b4_entry_BE57", "b4_entry_B2B4", S, _uw_s); } if (uw_abort) return; }
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_BE57");
+nmi_poll("b4_entry_BE57");
+cycles += 6;
+return;
+nmi_poll("b4_entry_BE57");
 }
 static void __attribute__((used)) b4_entry_B7BD(void) {
 nmi_poll("b4_entry_B7BD");
