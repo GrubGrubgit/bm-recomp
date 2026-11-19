@@ -1,0 +1,12 @@
+entry_B074:
+        jmp     LB08A
+entry_B077:
+        lda     $51
+        sta     $47
+        ldy     #$11
+        jsr     entry_C1EF
+        inc     $46
+        jsr     entry_C1EC
+        lda     #$1B
+        jsr     entry_C216
+LB08A:  rts

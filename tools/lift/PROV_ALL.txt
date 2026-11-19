@@ -614,6 +614,8 @@ entry_B040 4
 entry_B041 4
 entry_B044 4
 entry_B054 4
+entry_B074 4
+entry_B077 4
 entry_B09E 4
 entry_B0DF 4
 entry_B102 4
