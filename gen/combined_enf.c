@@ -27247,6 +27247,7 @@ static void b4_entry_A571(void);
 static void b4_entry_A574(void);
 static void b4_entry_A589(void);
 static void b4_entry_A58C(void);
+static void b4_entry_9F62(void);
 static void b4_L960E(void);
 static void b4_entry_9633(void);
 static void b4_entry_96BF(void);
@@ -28535,6 +28536,7 @@ case 0xa571: if (swbank == prg[4]) b4_entry_A571(); else __builtin_trap(); break
 case 0xa574: if (swbank == prg[4]) b4_entry_A574(); else __builtin_trap(); break;
 case 0xa589: if (swbank == prg[4]) b4_entry_A589(); else __builtin_trap(); break;
 case 0xa58c: if (swbank == prg[4]) b4_entry_A58C(); else __builtin_trap(); break;
+case 0x9f62: if (swbank == prg[4]) b4_entry_9F62(); else __builtin_trap(); break;
 case 0xB64D: if (swbank == prg[4]) b4_entry_B64D(); else __builtin_trap(); break;
 case 0xB650: if (swbank == prg[4]) b4_entry_B650(); else __builtin_trap(); break;
 case 0xB65E: if (swbank == prg[4]) b4_entry_B65E(); else __builtin_trap(); break;
@@ -29908,6 +29910,7 @@ static void b4_entry_A571(void);
 static void b4_entry_A574(void);
 static void b4_entry_A589(void);
 static void b4_entry_A58C(void);
+static void b4_entry_9F62(void);
 static void b4_entry_B7BD(void);
 static void b4_entry_B82C(void);
 static void b4_entry_B82F(void);
@@ -47788,6 +47791,12 @@ nmi_poll("b4_entry_A58C");
 cycles += 6;
 return;
 nmi_poll("b4_entry_A58C");
+}
+static void __attribute__((used)) b4_entry_9F62(void) {
+nmi_poll("b4_entry_9F62");
+cycles += 6;
+return;
+nmi_poll("b4_entry_9F62");
 }
 static void __attribute__((used)) b4_entry_B7BD(void) {
 nmi_poll("b4_entry_B7BD");
