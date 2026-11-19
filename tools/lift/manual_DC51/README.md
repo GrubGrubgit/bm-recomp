@@ -58,3 +58,19 @@ untouched (fb5ba78 migration out of scope).
 4. Recomp commit, frontend ENGINE_PIN bump, tools/build_game.sh
    rebuild, full 110003 wall-indexed rescore: expect first-diff past
    8574 and badmarks collapse.
+
+## Correction (2026-11-19): the deleted +3 was load-bearing
+Probe + ROM-byte audit at TAS wall 2487 (frame-time inputs
+1C=32 1D=33 1E=64 1F=79 22=30 23=26 24=66 25=158 26=236,
+D883 X=2 path, DC51 9x via LDC64, (2^05)&2==0) showed the a4b71fb
+deletion undercounts by 3 per EOR-path call: pre-fix gen charged
+LDA(0)+EOR(3)+DUP(3)+AND(2)=8, ROM-true is LDA(3)+EOR(3)+AND(2)=8
+(a5 39 / 45 05 / 29 02), so the old gen was accidentally exact and
+the deletion (now LDA(0)+EOR(3)+AND(2)=5) regressed the 110003-run
+first player-pos fork from 3999 back to wall 2488 (-27 = 9x-3,
+main#2487 reaches E936, NMI#2488 goes FULL 4980 vs SHORT 1341).
+Fix (this commit): restore LDA $39 cycles += 3 (+ poll) per fresh
+lift out_off.c/out_enf.c verbatim (LDA3+EOR3+AND2=8). Probe-verified:
+DC51 gaps return to 233/228/202 and NMI#2488 to 1341 SHORT, matching
+pre-a4b71fb timings exactly. The wall-8566 +3275 from the section
+above is NOT explained by DC51 and needs its own hunt.

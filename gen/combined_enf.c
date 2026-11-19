@@ -13484,6 +13484,8 @@ cycles += 2;
 nmi_poll("b7_entry_DC51");
 if (((P & 0x01))) { cycles += 1; b7_LDC64(); return; }
 A = RD(0x39); setZN(A);
+cycles += 3;
+nmi_poll("b7_entry_DC51");
 { uint8_t _m = RD(0x05); A = (uint8_t)(A ^ _m); setZN(A); }
 cycles += 3;
 nmi_poll("b7_entry_DC51");
