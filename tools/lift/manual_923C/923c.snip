@@ -1,0 +1,32 @@
+entry_923C:
+        jmp     entry_926E
+entry_926E:
+        lda     #$10
+        sta     $40
+        lda     #$10
+        sta     $41
+        jsr     entry_C0FF
+        beq     LA27E
+        jmp     entry_C117
+LA27E:  jsr     entry_C138
+        jsr     entry_C0A2
+        beq     LA291
+        lda     #$00
+        sta     $44
+        lda     #$4C
+        sta     $45
+        jsr     entry_C1AD
+LA291:  lda     $3F
+        sec
+        sbc     $50
+        bcs     LA29A
+        lda     #$F0
+LA29A:  sta     $3F
+        lda     #$3C
+        sta     $45
+        jmp     entry_C1AD
+LA2A3:  lda     #$11
+        sta     $46
+        lda     #$09
+        sta     $51
+        rts

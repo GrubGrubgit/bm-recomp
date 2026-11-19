@@ -430,6 +430,7 @@
 920E 4 entry_920E
 9234 6 entry_9234
 9236 4 entry_9236
+923C 4 entry_923C
 923F 4 entry_923F
 924A 4 entry_924A
 9255 4 L9255
