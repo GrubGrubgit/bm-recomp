@@ -1370,6 +1370,7 @@ entry_8A20 6
 entry_8A2B 6
 entry_8A31 6
 entry_8A52 6
+entry_8A58 6
 entry_8A5B 6
 entry_8A69 6
 entry_8A74 6
