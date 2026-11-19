@@ -689,9 +689,11 @@ for raw in lines:
         out.extend(_fetch)
         out.extend(_body)
         out.extend(_rest)
+        out.append('nmi_poll("%s_%s");' % (bank, cur))
     else:
-        out.extend(_cls)
         out.extend(_body)
+        out.extend(_cls)
+        out.append('nmi_poll("%s_%s");' % (bank, cur))
     if cur_addr is not None:
         try:
             cur_addr += op_len(op, arg)

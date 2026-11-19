@@ -16,6 +16,10 @@ uint8_t A, X, Y, S, P;
 uint8_t pad_bits;
 int pad_pos1, pad_pos2, strobe;
 int uw_abort;
+int uw_888C;
+int uw_9488;
+int uw_9434;
+int uw_9007;
 const char *uw_caller;
 const char *uw_callee;
 uint64_t cycles;
@@ -45,26 +49,56 @@ uint8_t chr0, chr1;
 uint8_t reg2001;
 uint8_t ppu_openbus;
 uint8_t pad_latch1, pad_latch2;
+static int trim_L6CD = 0;
+static int trim_8C00 = 0;
 
 static inline void setZN(uint8_t v) {
     P = (uint8_t)((P & 0x7D) | (v == 0 ? 0x02 : 0) | (v & 0x80));
 }
 static uint64_t wall_no = 0;
 static uint64_t pad_wall = 0;
-static uint64_t pad_next = CYCLES_PER_FRAME;
-static uint64_t vbl_ack_wall = (uint64_t)-1;
+static uint64_t vbl_ack_wall = (uint64_t)-1; static uint64_t ppu_mclk = 0; static uint64_t mcpu_clk = 108; static uint64_t synced_cyc = 9; static int ppu_scan = -1; static int ppu_dot = 340; static uint32_t ppu_frame = 1; static uint8_t vblank_on = 0; static uint8_t cpu_nmi = 0; static uint8_t cpu_nmi_prev = 0; static uint8_t need_nmi = 0; static uint8_t prevent_vbl = 0; static uint8_t frame_pad = 0; static uint8_t polled_pad = 0; static uint64_t last_poll_cyc = 9; static uint64_t max_poll_gap = 0; static const char *max_gap_site = "none"; static uint64_t max_gap_wall = 0; static uint64_t max_gap_cyc = 0;
 static inline int in_vblank_raw(void) {
     return (cycles % CYCLES_PER_FRAME) >= (uint64_t)VBLANK_START;
 }
 static inline __attribute__((unused)) int in_vblank(void) {
     return in_vblank_raw() && (wall_no != vbl_ack_wall);
 }
-static void nmi_fire_now(uint64_t frame, const char *site) {
-    if (pad_sample_fn) pad_bits = pad_sample_fn(pad_wall);
+static inline void ppu_step(void) {
+    if (ppu_dot < 340) {
+        ppu_dot++;
+        if (ppu_scan < 240) {
+            if (ppu_scan == -1) {
+                if (ppu_dot == 1) { vblank_on = 0; cpu_nmi = 0; }
+                else if (ppu_dot == 339 && (ppu_frame & 1) && (reg2001 & 0x18)) { ppu_dot = 340; }
+            }
+        } else if (ppu_scan == 241 && ppu_dot == 1) {
+            if (!prevent_vbl) { vblank_on = 1; if (reg2000 & 0x80) { cpu_nmi = 1; } }
+            prevent_vbl = 0;
+        }
+    } else {
+        ppu_dot = 0;
+        ppu_scan++;
+        if (ppu_scan > 260) { ppu_scan = -1; }
+        else if (ppu_scan == 240) { wall_no++; ppu_frame++; pad_wall = wall_no - 1; } else if (ppu_scan == 241) { if (pad_sample_fn) polled_pad = pad_sample_fn(wall_no); }
+    }
+}
+static inline void sync_dots(void) {
+    if (cycles != synced_cyc) {
+        mcpu_clk += (cycles - synced_cyc) * 12ULL;
+        synced_cyc = cycles;
+        uint64_t target = mcpu_clk - 1;
+        while (ppu_mclk + 4 <= target) { ppu_step(); ppu_mclk += 4; }
+        if (cpu_nmi && !cpu_nmi_prev) { need_nmi = 1; }
+        cpu_nmi_prev = cpu_nmi;
+    }
+}
+static inline void nmi_poll(const char *site); static void nmi_fire_now(uint64_t frame, const char *site) {
+    frame_pad = pad_sample_fn ? pad_sample_fn(wall_no) : 0; pad_bits = frame_pad;
     { uint8_t sP = P;
       uint8_t sS = S;
       in_nmi = 1;
-      cycles += 7;
+      cycles += 7; nmi_poll("auto");
       if (nmi_fire_fn) nmi_fire_fn();
       in_nmi = 0;
       if (S != sS) fprintf(stderr, "NMI-S-DRIFT %02X->%02X at %s\n", sS, S, site);
@@ -73,14 +107,14 @@ static void nmi_fire_now(uint64_t frame, const char *site) {
 }
 static inline void nmi_poll(const char *site) {
     if (!nmi_armed || !nmi_fire_fn) return;
+    { uint64_t _gap = cycles - last_poll_cyc; if (_gap > max_poll_gap) { max_poll_gap = _gap; max_gap_site = site; max_gap_wall = wall_no; max_gap_cyc = cycles; } }
+    last_poll_cyc = cycles;
+    sync_dots();
     if (in_nmi) return;
-    while (cycles >= nmi_next_edge) {
-        wall_no++;
-        uint64_t f = nmi_next_edge / CYCLES_PER_FRAME;
-        { uint64_t fl = (uint64_t)CYCLES_PER_FRAME; if ((reg2001 & 0x18) && (wall_no & 1)) fl -= 1; nmi_next_edge += fl; }
-        if (reg2000 & 0x80) nmi_fire_now(f, site);
+    if (need_nmi) {
+        need_nmi = 0;
+        nmi_fire_now(wall_no, site);
     }
-    while (cycles >= pad_next) { pad_wall++; { uint64_t pfl = (uint64_t)CYCLES_PER_FRAME; if ((reg2001 & 0x18) && (pad_wall & 1)) pfl -= 1; pad_next += pfl; } }
 }
 static inline int vram_phys(uint16_t a) {
     uint16_t b = a;
@@ -115,7 +149,7 @@ static void ppu_memwrite(uint16_t a, uint8_t v) {
     }
     vram[vram_phys(a)] = v;
 }
-static uint8_t RD(uint16_t a) {
+static uint8_t RD(uint16_t a) { sync_dots();
     if (a >= 0xC000) return prg[7][a - 0xC000];
     if (a >= 0x8000) return swbank[a - 0x8000];
     if (a < 0x2000) return ram[a & 0x7FF];
@@ -123,11 +157,14 @@ static uint8_t RD(uint16_t a) {
         int r = a & 7;
         if (r == 2) {
             uint8_t v = 0;
-            if (in_vblank_raw()) { v |= 0x80; vbl_ack_wall = wall_no; }
+            if (vblank_on) { v |= 0x80; }
             ppu_latch = 0;
             sc_latch = 0;
+                        if (ppu_scan == 241 && ppu_dot == 0) { prevent_vbl = 1; }
+            vblank_on = 0;
+            cpu_nmi = 0;
             ppu_openbus = (uint8_t)((ppu_openbus & 0x1F) | (v & 0xE0));
-            return v;
+            return (uint8_t)(v | (ppu_openbus & 0x1F));
         }
         if (r == 4) { ppu_openbus = oam[oam_addr]; return ppu_openbus; }
         if (r == 7) {
@@ -152,7 +189,7 @@ static uint8_t RD(uint16_t a) {
     if (a == 0x4015) return 0;
     if (a == 0x4016) {
         if (strobe) {
-            if (pad_sample_fn) { uint8_t live = pad_sample_fn(pad_wall); return live & 1; }
+            if (pad_sample_fn) { uint8_t live = polled_pad; return live & 1; }
             return pad_latch1 & 1;
         }
         if (pad_pos1 < 8) return (uint8_t)((pad_latch1 >> (pad_pos1++)) & 1);
@@ -165,19 +202,15 @@ static uint8_t RD(uint16_t a) {
     }
     return 0;
 }
-static void WR(uint16_t a, uint8_t v) {
+static void WR(uint16_t a, uint8_t v) { sync_dots();
     if (a < 0x2000) { ram[a & 0x7FF] = v; return; }
     if (a < 0x4000) {
         int r = a & 7;
         ppu_openbus = v;
         if (r == 0) {
-            uint8_t old2000 = reg2000;
             reg2000 = v;
-            if (!(old2000 & 0x80) && (v & 0x80)) {
-                if (nmi_armed && nmi_fire_fn && !in_nmi && in_vblank()) {
-                    nmi_fire_now(wall_no, "WR2000-rise");
-                }
-            }
+            if (!(v & 0x80)) { cpu_nmi = 0; }
+            else if (vblank_on) { cpu_nmi = 1; }
         }
         else if (r == 1) reg2001 = v;
         else if (r == 3) oam_addr = v;
@@ -197,7 +230,7 @@ static void WR(uint16_t a, uint8_t v) {
     if (a == 0x4016) {
         if (v & 1) {
             pad_pos1 = 0; pad_pos2 = 0;
-            if (pad_sample_fn) { uint64_t f = pad_wall; uint8_t live = pad_sample_fn(f); pad_latch1 = live; pad_latch2 = 0; pad_bits = live; }
+            if (pad_sample_fn) { uint8_t live = polled_pad; pad_latch1 = live; pad_latch2 = 0; pad_bits = live; }
             else { pad_latch1 = 0; pad_latch2 = 0; }
         }
         strobe = v & 1;
@@ -222,3 +255,4 @@ static void WR(uint16_t a, uint8_t v) {
 }
 
 #endif
+
