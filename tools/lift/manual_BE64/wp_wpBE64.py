@@ -24,8 +24,9 @@ def bodies(src, want):
     blob="".join([got[k] for k in want])
     assert "__builtin_trap" not in blob
     return blob
-OFF7=bodies(open(M+"/out_b7_off.c").read(), ["b7_entry_C048","b7_entry_C051","b7_entry_E107","b7_entry_E120"])
-ENF7=bodies(open(M+"/out_b7_enf.c").read(), ["b7_entry_C048","b7_entry_C051","b7_entry_E107","b7_entry_E120"])
+OFF7=bodies(open(M+"/out_b7_off.c").read(), ["b7_entry_C048","b7_entry_C051"])
+ENF7=bodies(open(M+"/out_b7_enf.c").read(), ["b7_entry_C048","b7_entry_C051"])
+# E107/E120 were lifted for reference but pre-exist in gen
 WANT4=["b4_entry_BE61","b4_entry_BE64"]
 OFF4=bodies(open(M+"/out_b4_off.c").read(), WANT4)
 ENF4=bodies(open(M+"/out_b4_enf.c").read(), WANT4)

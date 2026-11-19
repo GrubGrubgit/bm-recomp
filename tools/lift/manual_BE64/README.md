@@ -27,11 +27,16 @@ jsr entry_E0ED/E0FA auto-resolve via ADDRMAP to b7 (fixed bank).
 ADDMAP and PROV lines for C048/C051 were added before lifting
 (lift xresolve needs them); the wp script asserts nothing about
 them, only about the BE61/BE64 lines it owns.
-2. BE64 snip: jsr entry_C048/C051/C14D/C20A auto-resolve to b7
+2. E107/E120 were ALSO lifted in the leaf snip for reference, but
+the bodies pre-existed in gen (older lift, 0x0000 hex style, fewer
+nmi_polls; behavior-identical: same addresses, same cycles). The
+redundant copies were deleted post-splice; only C048/C051 were
+kept. The wp WANT7 lists reflect this (C048/C051 only).
+3. BE64 snip: jsr entry_C048/C051/C14D/C20A auto-resolve to b7
 via ADDRMAP fixed-bank hits; only LC02D needs the b4-to-b7 rewrite.
-3. Terminal fall-through into BE95 spelled as explicit jmp in-snip;
+4. Terminal fall-through into BE95 spelled as explicit jmp in-snip;
 wp strips the phantom JMP3 plus dup polls.
-4. BE61 needs no code beyond its tail call (target pre-existed).
+5. BE61 needs no code beyond its tail call (target pre-existed).
 
 ## Cases
 vec007A bank4 guarded cases for BE61/BE64.
@@ -39,6 +44,7 @@ vec007A bank4 guarded cases for BE61/BE64.
 ## Regen recipe
 1. lift.py beleaf.snip OUT b7 entries(C048,C051,E107,E120)
 stubs(E0ED,E0FA) with ADDRMAP PROV JMPTAB, UNWIND off/enf.
+Reference outputs keep all four bodies; only C048/C051 splice.
 2. lift.py be64.snip OUT b4 entries(BE61,BE64) stub(BE95), same specs.
 3. wp_wpBE64.py splices bank7 leaves first (defined before use),
 then bank4 bodies (before b4_entry_B7BD), decls, cases (after be57);
