@@ -1,0 +1,10 @@
+entry_B08B:
+        jmp     entry_B09E
+entry_B08E:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        jsr     LC030
+        beq     entry_B09E
+        jmp     entry_C114

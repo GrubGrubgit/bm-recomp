@@ -27236,6 +27236,8 @@ static void b4_entry_BDE7(void);
 static void b4_entry_BDEA(void);
 static void b4_entry_B074(void);
 static void b4_entry_B077(void);
+static void b4_entry_B08B(void);
+static void b4_entry_B08E(void);
 static void b4_L960E(void);
 static void b4_entry_9633(void);
 static void b4_entry_96BF(void);
@@ -28513,6 +28515,8 @@ case 0xbde7: if (swbank == prg[4]) b4_entry_BDE7(); else __builtin_trap(); break
 case 0xbdea: if (swbank == prg[4]) b4_entry_BDEA(); else __builtin_trap(); break;
 case 0xb074: if (swbank == prg[4]) b4_entry_B074(); else __builtin_trap(); break;
 case 0xb077: if (swbank == prg[4]) b4_entry_B077(); else __builtin_trap(); break;
+case 0xb08b: if (swbank == prg[4]) b4_entry_B08B(); else __builtin_trap(); break;
+case 0xb08e: if (swbank == prg[4]) b4_entry_B08E(); else __builtin_trap(); break;
 case 0xB64D: if (swbank == prg[4]) b4_entry_B64D(); else __builtin_trap(); break;
 case 0xB650: if (swbank == prg[4]) b4_entry_B650(); else __builtin_trap(); break;
 case 0xB65E: if (swbank == prg[4]) b4_entry_B65E(); else __builtin_trap(); break;
@@ -29875,6 +29879,8 @@ static void b4_entry_BDE7(void);
 static void b4_entry_BDEA(void);
 static void b4_entry_B074(void);
 static void b4_entry_B077(void);
+static void b4_entry_B08B(void);
+static void b4_entry_B08E(void);
 static void b4_entry_B7BD(void);
 static void b4_entry_B82C(void);
 static void b4_entry_B82F(void);
@@ -47149,6 +47155,42 @@ nmi_poll("b4_entry_B077");
 cycles += 6;
 return;
 nmi_poll("b4_entry_B077");
+}
+static void __attribute__((used)) b4_entry_B08B(void) {
+nmi_poll("b4_entry_B08B");
+nmi_poll("b4_entry_B08B");
+cycles += 3;
+b4_entry_B09E(); return;
+nmi_poll("b4_entry_B08B");
+}
+static void __attribute__((used)) b4_entry_B08E(void) {
+nmi_poll("b4_entry_B08E");
+A = 0x80; setZN(A);
+cycles += 2;
+nmi_poll("b4_entry_B08E");
+WR(0x42, A);
+cycles += 3;
+nmi_poll("b4_entry_B08E");
+A = 0x80; setZN(A);
+cycles += 2;
+nmi_poll("b4_entry_B08E");
+WR(0x43, A);
+cycles += 3;
+nmi_poll("b4_entry_B08E");
+nmi_poll("b4_entry_B08E");
+cycles += 9; /* SLOT-JSR: JSR6+JMP3 */
+S = (uint8_t)(S - 2);
+{ uint8_t _uw_s = S; b7_entry_E0A5(); if (S != _uw_s && !uw_abort) { uw_abort = 1; fprintf(stderr, "UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X\n", "b4_entry_B08E", "b7_entry_E0A5", S, _uw_s); } if (uw_abort) return; }
+S = (uint8_t)(S + 2);
+nmi_poll("b4_entry_B08E");
+nmi_poll("b4_entry_B08E");
+cycles += 2;
+if (((P & 0x02))) { cycles += 1; b4_entry_B09E(); return; }
+nmi_poll("b4_entry_B08E");
+nmi_poll("b4_entry_B08E");
+cycles += 3;
+b7_entry_C114(); return;
+nmi_poll("b4_entry_B08E");
 }
 static void __attribute__((used)) b4_entry_B7BD(void) {
 nmi_poll("b4_entry_B7BD");
