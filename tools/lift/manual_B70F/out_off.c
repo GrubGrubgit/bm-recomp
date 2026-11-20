@@ -2,16 +2,20 @@
 static void b6_entry_B70F(void);
 static void b6_entry_B713(void);
 static void __attribute__((used)) b6_entry_B70F(void) {
+nmi_pc = 0xB70F;
 nmi_poll("b6_entry_B70F");
 { uint8_t _m = RD(0x2B20); A = (uint8_t)(A ^ _m); setZN(A); }
 cycles += 4;
+nmi_pc = 0xB712;
 nmi_poll("b6_entry_B70F");
 P = (uint8_t)(P & 0xBF);
 cycles += 2;
+nmi_pc = 0xB713;
 nmi_poll("b6_entry_B70F");
 nmi_poll("b6_entry_B70F");
 cycles += 3;
 b6_entry_B713(); return;
+nmi_pc = 0xB716;
 nmi_poll("b6_entry_B70F");
 }
 static void b6_entry_B713(void) { __builtin_trap(); }

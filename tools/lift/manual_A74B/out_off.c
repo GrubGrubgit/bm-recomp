@@ -1,10 +1,14 @@
 #include "runtime.h"
 static void b4_entry_A74B(void);
 static void __attribute__((used)) b4_entry_A74B(void) {
+nmi_pc = 0xA74B;
 nmi_poll("b4_entry_A74B");
 WR(0x50, A);
 cycles += 3;
+nmi_pc = 0xA74D;
 nmi_poll("b4_entry_A74B");
 cycles += 6;
 return;
+nmi_pc = 0xA74E;
+nmi_poll("b4_entry_A74B");
 }

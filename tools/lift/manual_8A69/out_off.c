@@ -1,60 +1,77 @@
 #include "runtime.h"
 static void b4_L8A69(void);
 static void b4_entry_93BD(void);
-static void b4_entry_C063(void);
-static void b4_entry_C0FF(void);
-static void b4_entry_C11A(void);
+static void b7_entry_C063(void);
+static void b7_entry_C0FF(void);
+static void b7_entry_C11A(void);
 static void __attribute__((used)) b4_L8A69(void) {
+nmi_pc = 0x8A69;
 nmi_poll("b4_L8A69");
 ;
 cycles += 2;
+nmi_pc = 0x8A6A;
 nmi_poll("b4_L8A69");
 ;
 cycles += 2;
+nmi_pc = 0x8A6B;
 nmi_poll("b4_L8A69");
 ;
 cycles += 2;
+nmi_pc = 0x8A6C;
 nmi_poll("b4_L8A69");
 A = 0x18; setZN(A);
 cycles += 2;
+nmi_pc = 0x8A6E;
 nmi_poll("b4_L8A69");
 WR(0x40, A);
 cycles += 3;
+nmi_pc = 0x8A70;
 nmi_poll("b4_L8A69");
 A = 0x10; setZN(A);
 cycles += 2;
+nmi_pc = 0x8A72;
 nmi_poll("b4_L8A69");
 WR(0x41, A);
 cycles += 3;
+nmi_pc = 0x8A74;
 nmi_poll("b4_L8A69");
 nmi_poll("b4_L8A69");
 cycles += 6;
 S = (uint8_t)(S - 2);
-b4_entry_C0FF();
+b7_entry_C0FF();
 S = (uint8_t)(S + 2);
+nmi_pc = 0x8A77;
 nmi_poll("b4_L8A69");
+nmi_pc = 0x8A77;
 nmi_poll("b4_L8A69");
 A = 0x00; setZN(A);
 cycles += 2;
+nmi_pc = 0x8A79;
 nmi_poll("b4_L8A69");
 WR(0x44, A);
 cycles += 3;
+nmi_pc = 0x8A7B;
 nmi_poll("b4_L8A69");
 nmi_poll("b4_L8A69");
 cycles += 6;
 S = (uint8_t)(S - 2);
 b4_entry_93BD();
 S = (uint8_t)(S + 2);
+nmi_pc = 0x8A7E;
 nmi_poll("b4_L8A69");
+nmi_pc = 0x8A7E;
 nmi_poll("b4_L8A69");
 { uint8_t _v = (uint8_t)(RD(0x51) + 1); WR(0x51, _v); setZN(_v); }
 cycles += 5;
+nmi_pc = 0x8A80;
 nmi_poll("b4_L8A69");
 cycles += 2;
 if ((!(P & 0x02))) { cycles += 1; nmi_poll("b4_L8A69"); goto b4_LB8A84; }
+nmi_pc = 0x8A82;
 nmi_poll("b4_L8A69");
 { uint8_t _v = (uint8_t)(RD(0x51) - 1); WR(0x51, _v); setZN(_v); }
 cycles += 5;
+nmi_pc = 0x8A84;
 nmi_poll("b4_L8A69");
 b4_LB8A84:;
 A = RD(0x51); setZN(A);
@@ -72,7 +89,7 @@ nmi_poll("b4_L8A69");
 nmi_poll("b4_L8A69");
 cycles += 6;
 S = (uint8_t)(S - 2);
-b4_entry_C11A();
+b7_entry_C11A();
 S = (uint8_t)(S + 2);
 nmi_poll("b4_L8A69");
 nmi_poll("b4_L8A69");
@@ -110,10 +127,7 @@ cycles += 2;
 nmi_poll("b4_L8A69");
 nmi_poll("b4_L8A69");
 cycles += 3;
-b4_entry_C063(); return;
+b7_entry_C063(); return;
 nmi_poll("b4_L8A69");
 }
 static void b4_entry_93BD(void) { __builtin_trap(); }
-static void b4_entry_C063(void) { __builtin_trap(); }
-static void b4_entry_C0FF(void) { __builtin_trap(); }
-static void b4_entry_C11A(void) { __builtin_trap(); }

@@ -32,6 +32,7 @@ static int call_traps(void (*fn)(void)) {
     return 1;
 }
 int main(void) {
+    cycles = 9;
     memset(ram, 0, sizeof ram);
     memset(ram + 0x100, 0, 0x100);
     A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;

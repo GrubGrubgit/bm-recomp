@@ -15,18 +15,40 @@ static void check(int ok, const char *msg) {
     printf("%s %s\n", ok ? "PASS" : "FAIL", msg);
     if (!ok) failures++;
 }
+static uint8_t test_pad_value = 0;
+static uint8_t test_pad_fn(uint64_t f) { (void)f; return test_pad_value; }
 static void run_case(const char *name, uint8_t pad, uint8_t want) {
     memset(ram, 0, sizeof ram);
     A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
     ram[0xFB] = 0; ram[0xF7] = 0; ram[0xF8] = 0;
     pad_bits = pad; pad_pos1 = 0; pad_pos2 = 0; strobe = 0;
+    test_pad_value = pad; pad_sample_fn = test_pad_fn;
+    { int _pi; for (_pi = 0; _pi < 40000; _pi++) { cycles++; sync_dots(); } }
     b7_LE914();
-    int ok = (ram[0xF7] == want && ram[0xF8] == want);
+    int ok = (ram[0xF7] == want && ram[0xF8] == 0x00);
     if (!ok) failures++;
     printf("%-6s pad=%02X F7=%02X F8=%02X want=%02X %s\n",
         name, pad, ram[0xF7], ram[0xF8], want, ok ? "OK" : "FAIL");
 }
+static int nmi_probe_S = -1;
+static uint8_t nmi_probe_b0, nmi_probe_b1, nmi_probe_b2;
+static void nmi_probe_fn(void) {
+    nmi_probe_S = S;
+    nmi_probe_b0 = stk[0xFD]; nmi_probe_b1 = stk[0xFC]; nmi_probe_b2 = stk[0xFB];
+    S = (uint8_t)(S + 3);
+}
+static void nmi_push_test(void) {
+    memset(ram, 0, sizeof ram);
+    A = 0; X = 0; Y = 0; S = 0xFD; P = 0x24;
+    nmi_pc = 0x1234;
+    pad_sample_fn = 0;
+    nmi_armed = 1; in_nmi = 0; nmi_fire_fn = nmi_probe_fn;
+    nmi_probe_S = -1;
+    nmi_fire_now(0, "test");
+    check(nmi_probe_S == 0xFA && nmi_probe_b0 == 0x12 && nmi_probe_b1 == 0x34 && nmi_probe_b2 == 0x24 && S == 0xFD && P == 0x24, "NMI pushes PCH/PCL/P, S balanced");
+}
 int main(void) {
+    cycles = 9;
     run_case("none", 0x00, 0x00);
     run_case("A", 0x01, 0x80);
     run_case("B", 0x02, 0x40);
@@ -172,10 +194,11 @@ int main(void) {
     b4_LB1F9();
     check(A == 0xF8 && P == 0xB4 && S == 0xFD && ram[0x48] == 0x80 && ram[0x49] == 0xF8, "B1F9 php/plp ora path");
     memset(ram, 0, sizeof ram);
-    A = 0; X = 0; Y = 0; S = 0xFA; P = 0x24;
-    ram[0x1FB] = 0xCC; ram[0x1FC] = 0xBB; ram[0x1FD] = 0xAA;
+    A = 0; X = 0; Y = 0; S = 0xF7; P = 0x24;
+    ram[0x1F8] = 0xCC; ram[0x1F9] = 0xBB; ram[0x1FA] = 0xAA;
     b7_entry_RT1();
-    check(A == 0xAA && X == 0xBB && Y == 0xCC && S == 0xFD && P == 0xA4, "RT1 NMI-restore tail, rti returns");
+    check(A == 0xAA && X == 0xBB && Y == 0xCC && S == 0xFD && P == 0xA4, "RT1 NMI-restore tail, rti pops NMI frame");
+    nmi_push_test();
     if (failures) { printf("FAILURES=%d\n", failures); return 1; }
     printf("ALL LIFT TESTS PASS\n");
     return 0;

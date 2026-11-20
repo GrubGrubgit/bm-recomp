@@ -476,6 +476,12 @@ for raw in lines:
             out.append('static void __attribute__((used)) %s_%s(void) {' % (bank, name))
             if name in self_tgt:
                 out.append('%s_%s_top:;' % (bank, name))
+            try:
+                _npc_entry = labnum(name)
+            except AssertionError:
+                _npc_entry = None
+            if _npc_entry is not None:
+                out.append('nmi_pc = 0x%04X;' % _npc_entry)
             out.append('nmi_poll("%s_%s");' % (bank, name))
             cur = name
             fn_sites = []
@@ -604,11 +610,23 @@ for raw in lines:
         if _xr is not None:
             out.append('if (%s) { %s b%d_%s(); return; }' % (cond, _tcyc, _xr[0], _xr[1]))
         elif arg == cur:
+            try:
+                _npc_branch_top = labnum(cur)
+            except AssertionError:
+                _npc_branch_top = None
+            if _npc_branch_top is not None:
+                out.append('nmi_pc = 0x%04X;' % _npc_branch_top)
             out.append('if (%s) { %s nmi_poll("%s_%s"); goto %s_%s_top; }' % (cond, _tcyc, bank, cur, bank, cur))
         elif arg in entries or arg in stubset:
             out.append('if (%s) { %s %s_%s(); return; }' % (cond, _tcyc, bank, arg))
         else:
             assert arg in all_labels, 'branch target outside lifted regions: ' + arg
+            try:
+                _npc_branch_label = labnum(arg)
+            except AssertionError:
+                _npc_branch_label = None
+            if _npc_branch_label is not None:
+                out.append('nmi_pc = 0x%04X;' % _npc_branch_label)
             out.append('if (%s) { %s nmi_poll("%s_%s"); goto %s_%s; }' % (cond, _tcyc, bank, cur, bank, arg))
     elif op == 'jsr':
         assert arg and arg[0] not in ('$', '#'), 'jsr needs a label target: ' + arg
@@ -626,6 +644,13 @@ for raw in lines:
             out.append('S = (uint8_t)(S - 2);')
             out.append(_callee + '();')
             out.append('S = (uint8_t)(S + 2);')
+            if cur_addr is not None:
+                try:
+                    _npc_succ = (cur_addr + op_len(op, arg)) & 0xFFFF
+                except AssertionError:
+                    _npc_succ = None
+                if _npc_succ is not None:
+                    out.append('nmi_pc = 0x%04X;' % _npc_succ)
             out.append('nmi_poll("%s");' % _caller)
         elif unwind_mode == 'log':
             out.append('nmi_poll("%s");' % _caller)
@@ -633,6 +658,13 @@ for raw in lines:
             out.append('S = (uint8_t)(S - 2);')
             out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s) fprintf(stderr, ' + chr(34) + 'UNWIND caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); }')
             out.append('S = (uint8_t)(S + 2);')
+            if cur_addr is not None:
+                try:
+                    _npc_succ = (cur_addr + op_len(op, arg)) & 0xFFFF
+                except AssertionError:
+                    _npc_succ = None
+                if _npc_succ is not None:
+                    out.append('nmi_pc = 0x%04X;' % _npc_succ)
             out.append('nmi_poll("%s");' % _caller)
         elif unwind_mode in ('enforce', 'resume'):
             _rec = ('uw_caller = "' + _caller + '"; uw_callee = "' + _callee + '"; ') if unwind_mode == 'resume' else ''
@@ -645,6 +677,13 @@ for raw in lines:
             else:
                 out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; ' + _rec + 'fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort) return; }')
             out.append('S = (uint8_t)(S + 2);')
+            if cur_addr is not None:
+                try:
+                    _npc_succ = (cur_addr + op_len(op, arg)) & 0xFFFF
+                except AssertionError:
+                    _npc_succ = None
+                if _npc_succ is not None:
+                    out.append('nmi_pc = 0x%04X;' % _npc_succ)
             out.append('nmi_poll("%s");' % _caller)
     elif op == 'jmp' and arg.startswith('('):
         assert arg.endswith(')'), 'bad jmp indirect: ' + arg
@@ -676,6 +715,7 @@ for raw in lines:
         out.append('return;')
     elif op == 'rti':
         out.append('cycles += 6;')
+        out.append('S = (uint8_t)(S + 3);')
         out.append('return;')
     elif op == 'nop':
         out.append(';')
@@ -689,10 +729,24 @@ for raw in lines:
         out.extend(_fetch)
         out.extend(_body)
         out.extend(_rest)
+        if cur_addr is not None:
+            try:
+                _npc_succ = (cur_addr + op_len(op, arg)) & 0xFFFF
+            except AssertionError:
+                _npc_succ = None
+            if _npc_succ is not None:
+                out.append('nmi_pc = 0x%04X;' % _npc_succ)
         out.append('nmi_poll("%s_%s");' % (bank, cur))
     else:
         out.extend(_body)
         out.extend(_cls)
+        if cur_addr is not None:
+            try:
+                _npc_succ = (cur_addr + op_len(op, arg)) & 0xFFFF
+            except AssertionError:
+                _npc_succ = None
+            if _npc_succ is not None:
+                out.append('nmi_pc = 0x%04X;' % _npc_succ)
         out.append('nmi_poll("%s_%s");' % (bank, cur))
     if cur_addr is not None:
         try:
