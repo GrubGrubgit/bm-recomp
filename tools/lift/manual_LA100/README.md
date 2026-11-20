@@ -1,0 +1,70 @@
+# Manual LA100 2-level unwind (TAS wall-7126 first gameplay fork)
+
+## Symptom
+Full 110003 wall-indexed rescore on recomp e8254b1: exact through wall
+7125 (pre-phase first=7299; post-phase first=1801 RAM-only), first real
+gameplay fork at wall 7126: nd=68 (ndNo1E4) vs Mesen f=7126 =
+$03D,$05D-5F (port 5,21,37 vs 0F),$0FD (232v168),OAM $2A4-2F3,
+$618,$61B,$61C-62F (10B sprite staging),$655-657. Persists 7127+.
+$10/$11/$14/$15/$45/$46/$470/$03FD/$F1/$FC/$4F/$51/$53 END-equal.
+
+## Root cause
+Bank4 LA100 ends `pla, pla, rts` (ROM bytes at $A100:
+`20 0e c1 20 72 a0 0d fb 03 8d fb 03 a9 5a 85 46 a9 00 20 1a c1
+68 68 60` = JSR C10E, JSR A072, ORA/STA $03FB, LDA#$5A/STA $46,
+LDA#$00, JSR C11A, PLA, PLA, RTS). LA100 is reached by BRANCH
+(LA0A3 BCS, $03FD INC-to->=$80: first wall ever at 7126 with
+$10=232 even), so the stack holds [RET_C9A4-caller][RET_A07B-caller]:
+the PLAs pop the JSR-A07B return and the RTS pops the JSR-C9A4 return,
+resuming in b7_LC987 right after its JSR C9A4 (which then runs LC928 +
+EC73 + loop). It is an INTENTIONAL routine transition-skip, same class
+as fork9's L9434 (and the flagged-twin LA100 noted in the fork4
+writeup). The lift renders the tail as two S+=1 pops plus a plain C
+`return`, which returns into A07B/A58C and runs the whole tail
+(A65A anchor, $03FD/$4F/$53 gates, C144/C216, LA63E, 9EB3 deploy,
+$FD=232) that HW skips (Mesen: no deploy, $FD stale 168, $61x stale,
+$470=90 via the caller-side LC928 writeback).
+
+Callers of A07B (all vec-JMP-entered, so every unwind lands in the same
+LC987-after-C9A4): b4_entry_A58C, b4_entry_970F, b4_entry_9B67.
+C9A4 ends `jmp (L007A)` (no push, no epilogue), so the landing is exact.
+
+## Proof (device ~/w72 probes, binding-safe, no ROM in app)
+- S6 (forced `return` after C0FF at wall 7126): ndNo1E4 = 0 vs Mesen.
+- Principled fix (this patch, counter + landing split): ndNo1E4 = 0 at
+  7126, walls 7118-7126 all exact, 7125 still exact. CR trace: A07B
+  entered but never returned at 7126 (unwind fired); 9EB3 never entered.
+- Cycle-neutral (no added cycles+=, same polls) and S-neutral (explicit
+  S math: -2-2+4=0 at landing; ENF-style S accounting holds; no
+  NMI-S-DRIFT across the walls). uw counter (not boolean): multiple
+  slots can unwind per frame; each LC987 resume consumes exactly one.
+- Fresh lift.py on la100.snip (out_off.c, this dir) reproduces the buggy
+  tail (PLA,PLA,plain return); only the tail shape is asserted from it,
+  poll placement intentionally untouched (post-fb5ba78 drift out of scope).
+
+## Fix (OFF only, fork9 uw_9434 pattern)
+- `int uw_LA100;` decl (counter).
+- LA100 tail: keep PLA,PLA (+4cy each), add RTS-pop `S += 2`, set
+  `uw_LA100++`, plain return (resumes in the A07B caller via the
+  musttail-replaced frames).
+- check-1 in the three A07B callers (A58C/970F/9B67): after the A07B
+  call, `if (uw_LA100) { b7_LC987_after_C9A4(); return; }` (skips the
+  S+=2 whose bytes HW popped, runs the HW tail immediately so later
+  slots observe HW-identical intermediate state).
+- LC987 after its C9A4 call: `if (uw_LA100) { uw_LA100--;
+  S += 2; b7_LC990_EXIT(); return; }` (C-stack resume after the forward
+  chain returns: skip the already-run tail, exit the slot loop; S resync).
+- New `b7_LC987_after_C9A4` = LC987 tail verbatim (LC928 + EC73 +
+  LC990 call); new `b7_LC990_EXIT` = loop-exit verbatim (STA $4F + RTS).
+- ENF untouched (fork9 precedent: ENF aborts loudly on unmodeled
+  unwinds by design via UNWIND-ESCAPE).
+
+## Regen recipe
+1. lift.py la100.snip (this dir): `python3 lift.py \
+   manual_LA100/la100.snip manual_LA100/out_off.c b4 LA100 \
+   LC10E,entry_A072,LC11A UNWIND:off` - confirm buggy tail shape.
+2. python3 wp_fix_LA100.py (asserts + splices gen/combined_off.c only).
+3. gcc -fsyntax-only -Wall -Wextra clean on both gens.
+4. Recomp commit, frontend ENGINE_PIN bump, tools/build_game.sh rebuild,
+   full 110003 wall-indexed rescore: expect first-fork 7126 -> 7127
+   (next hunt: ty90-dispatch path, OAM/sprite-shaped, $27/$3D/$200+).

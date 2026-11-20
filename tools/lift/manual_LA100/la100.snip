@@ -1,0 +1,11 @@
+LA100:  jsr     LC10E
+        jsr     entry_A072
+        ora     $03FB
+        sta     $03FB
+        lda     #$5A
+        sta     $46
+        lda     #$00
+        jsr     LC11A
+        pla
+        pla
+        rts
