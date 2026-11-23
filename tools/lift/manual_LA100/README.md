@@ -68,3 +68,64 @@ C9A4 ends `jmp (L007A)` (no push, no epilogue), so the landing is exact.
 4. Recomp commit, frontend ENGINE_PIN bump, tools/build_game.sh rebuild,
    full 110003 wall-indexed rescore: expect first-fork 7126 -> 7127
    (next hunt: ty90-dispatch path, OAM/sprite-shaped, $27/$3D/$200+).
+# LA100 v2 appendix (stranded-resume guard; TAS wall-7126 fork, Nov 2026)
+
+## Why v1 was not enough
+
+v1 (`uw_LA100` flag, commit 7429a3f) fixed the landing: LA100 tail does the
+RTS-pop (`S += 2`, `uw_LA100++`) and the three A07B callers redirect to
+`b7_LC987_after_C9A4` (tail runs once, in the right place, later slots see
+HW-identical state). But the ORIGINAL `LC987` resume -- reached when the C
+stack unwinds back through the dispatch chain -- still executed its
+unconditional `S += 2`, a spare +2 on top of the already-balanced slot.
+Its two candidate treatments were both wrong (proven against the true-6502
+emu and Mesen st-7125..7170):
+- EXIT (`b7_LC990_EXIT`, skip the tail): missed a tail HW runs -- save/EC73/
+  slot-increment skipped, spurious `C99F` + `STA $4F`, double-consumed entry
+  slot. Same +2, plus game-state damage.
+- continue (re-run `b7_LC987_after_C9A4`): spare tail, same +2.
+Port frame net +2 vs Mesen at 7126 (Sold FD vs FD... offset persisted).
+
+## v2: stranded-resume guard (this patch, `wp_fix_LA100_v2.py`)
+
+Per-`LC987` sequence id + stranded-id stack. The `LC987` invocation whose
+`C9A4` was unwound must skip BOTH its `S += 2` and its tail (the warp already
+ran it via check-1); normal later `LC987`s (fresh ids, e.g. next slots run
+inside the warp tail) run `S += 2` + tail as usual. `S += 2` MUST follow the
+guard in both places.
+- decl: `int uw_seq=0; int uw_sid[4]; int uw_sidd=0;` (kept next to
+  `int uw_LA100;`). Depth 4: multi-unwind safe (nested warps drain LIFO;
+ verified max depth in the 110003-frame TAS is below this).
+- LA100 tail (after PLA,PLA): `S += 2;` (HW-true Sp) + `uw_LA100++` +
+  `if (uw_sidd<4) uw_sid[uw_sidd++]=uw_seq;` (record youngest LC987 id).
+- LC987 entry: `int my_lc987 = ++uw_seq;` (+ publish before the C9A4 call).
+- LC987 resume replaces the v1 EXIT line:
+  `if (uw_LA100) { search uw_sid[0..uw_sidd) for my_lc987; hit: swap-remove,
+  uw_LA100--, return; }` then `S += 2;` + tail. Miss (normal later LC987)
+  falls through to `S += 2` + tail.
+- check-1 in the three A07B callers (A58C/970F/9B67) UNCHANGED (fires exactly
+  when this chain warped: the LA100 tail just ran synchronously below it).
+- New `b7_LC990_EXIT` from v1 is now unreferenced (kept, harmless).
+- Cycle-neutral (no added `cycles+=`), S-neutral by construction.
+- ENF untouched (fork9 precedent: ENF aborts loudly on unmodeled unwinds).
+
+## Proof (device, binding-safe, no ROM in app)
+
+- `~/emu65.py` true-6502 emu reproduces Mesen st-7126 EXACTLY from st-7125
+  (REGSMATCH, RAMDIFF 0); handler pc-streams port-vs-emu identical (dedup
+  ratio 0.9996); divergence is main-only => this fix's scope.
+- Forensic: clean production tree (backup + fixppu + v2, zero TEMP) plus TEMP
+  gates rebuilds to a pwalk log BIT-IDENTICAL (13.5MB) to the verified dev
+  run: FIRE Sold=FD walls 7124-7130 = Mesen st-S; `verify7170.py` walls
+  7100-7150 zero S divergences; port main S-runs 180/180 vs emu.
+- Production: `-O3` FULL 110003 wall-indexed PRE rescore green, 0 badmarks,
+  no unmapped-vector traps (see rescore log).
+
+## Production recipe (OFF only)
+
+1. base = `~/combined-9aee.bak` (has v1 + 9AEE/80C9/trims, no TEMP).
+2. `python3 ~/fixppu.py` (HW-grounded $2000-landing fix; asserts anchors).
+3. `python3 manual_LA100/wp_fix_LA100_v2.py` (asserts v1 shapes; 4 stages ok).
+4. `gcc -fsyntax-only -Wall -Wextra` silent; `-O3` build; full rescore green.
+5. TEMP (never committed): dbg_ev gates (789701/703/704/706/712/713 + quint +
+   APU 789705), EA-inert (`ea_done`, wall 999999999), dbgev 4194304.

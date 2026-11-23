@@ -58,7 +58,7 @@ static inline void setZN(uint8_t v) {
 }
 static uint64_t wall_no = 0;
 static uint64_t pad_wall = 0;
-static uint64_t vbl_ack_wall = (uint64_t)-1; static uint64_t ppu_mclk = 0; static uint64_t mcpu_clk = 108; static uint64_t synced_cyc = 9; static int ppu_scan = -1; static int ppu_dot = 340; static uint32_t ppu_frame = 1; static uint8_t vblank_on = 0; static uint8_t cpu_nmi = 0; static uint8_t cpu_nmi_prev = 0; static uint8_t need_nmi = 0; static uint8_t prevent_vbl = 0; static uint8_t frame_pad = 0; static uint8_t polled_pad = 0; static uint64_t last_poll_cyc = 9; static uint64_t max_poll_gap = 0; static const char *max_gap_site = "none"; static uint64_t max_gap_wall = 0; static uint64_t max_gap_cyc = 0;
+static uint64_t vbl_ack_wall = (uint64_t)-1; static uint64_t ppu_mclk = 0; static uint64_t mcpu_clk = 108; static uint64_t synced_cyc = 9; static int ppu_scan = -1; static int ppu_dot = 340; static uint32_t ppu_frame = 1; static uint8_t vblank_on = 0; static uint8_t cpu_nmi = 0; static uint8_t cpu_nmi_prev = 0; static uint8_t need_nmi = 0; static uint8_t prevent_vbl = 0; static uint8_t frame_pad = 0; static uint8_t presnap2_ram[2048]; static uint64_t presnap2_cyc; static uint8_t presnap2_S, presnap2_P, presnap2_A, presnap2_X, presnap2_Y; static uint16_t presnap2_pc; static uint64_t presnap2_wall = (uint64_t)-1; static int presnap2_scan, presnap2_dot; static uint8_t presnap2_vbl; static uint8_t polled_pad = 0; static uint64_t last_poll_cyc = 9; static uint64_t max_poll_gap = 0; static const char *max_gap_site = "none"; static uint64_t max_gap_wall = 0; static uint64_t max_gap_cyc = 0;
 static inline int in_vblank_raw(void) {
     return (cycles % CYCLES_PER_FRAME) >= (uint64_t)VBLANK_START;
 }
@@ -81,7 +81,7 @@ static inline void ppu_step(void) {
         ppu_dot = 0;
         ppu_scan++;
         if (ppu_scan > 260) { ppu_scan = -1; }
-        else if (ppu_scan == 240) { wall_no++; ppu_frame++; pad_wall = wall_no - 1; } else if (ppu_scan == 241) { if (pad_sample_fn) polled_pad = pad_sample_fn(wall_no); }
+        else if (ppu_scan == 240) { wall_no++; ppu_frame++; pad_wall = wall_no - 1; { int _pi; presnap2_wall = wall_no; presnap2_cyc = cycles; for (_pi = 0; _pi < 2048; _pi++) presnap2_ram[_pi] = ram[_pi]; presnap2_S = S; presnap2_P = P; presnap2_A = A; presnap2_X = X; presnap2_Y = Y; presnap2_pc = nmi_pc; presnap2_scan = ppu_scan; presnap2_dot = ppu_dot; presnap2_vbl = vblank_on; } } else if (ppu_scan == 241) { if (pad_sample_fn) polled_pad = pad_sample_fn(wall_no); }
     }
 }
 static inline void sync_dots(void) {
@@ -115,6 +115,7 @@ static inline void nmi_poll(const char *site) {
     { uint64_t _gap = cycles - last_poll_cyc; if (_gap > max_poll_gap) { max_poll_gap = _gap; max_gap_site = site; max_gap_wall = wall_no; max_gap_cyc = cycles; } }
     last_poll_cyc = cycles;
     sync_dots();
+    if (wall_no != presnap2_wall) { int _pi; presnap2_wall = wall_no; presnap2_cyc = cycles; for (_pi = 0; _pi < 2048; _pi++) presnap2_ram[_pi] = ram[_pi]; presnap2_S = S; presnap2_P = P; presnap2_A = A; presnap2_X = X; presnap2_Y = Y; presnap2_pc = nmi_pc; presnap2_scan = ppu_scan; presnap2_dot = ppu_dot; presnap2_vbl = vblank_on; }
     if (in_nmi) return;
     if (need_nmi) {
         need_nmi = 0;

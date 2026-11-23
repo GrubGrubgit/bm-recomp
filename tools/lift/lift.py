@@ -638,10 +638,20 @@ for raw in lines:
         _caller = '%s_%s' % (bank, cur)
         _a0 = labaddr_opt(arg)
         _jsrcyc = 'cycles += 9; /* SLOT-JSR: JSR6+JMP3 */' if (_a0 is not None and _a0 in slots and _xr is not None) else 'cycles += 6;'
+        # HW: 6502 JSR pushes PCH then PCL of (PC+2). Wrap-safe two pushes.
+        try:
+            _ret = (cur_addr + 2) & 0xFFFF if cur_addr is not None else None
+        except AssertionError:
+            _ret = None
+        if _ret is not None:
+            _jsrpush = ['stk[S] = 0x%02X; S = (uint8_t)(S - 1);' % ((_ret >> 8) & 0xFF), 'stk[S] = 0x%02X; S = (uint8_t)(S - 1);' % (_ret & 0xFF)]
+        else:
+            _jsrpush = ['S = (uint8_t)(S - 2);']
+
         if unwind_mode == 'off':
             out.append('nmi_poll("%s");' % _caller)
             out.append(_jsrcyc)
-            out.append('S = (uint8_t)(S - 2);')
+            for _l in _jsrpush: out.append(_l)
             out.append(_callee + '();')
             out.append('S = (uint8_t)(S + 2);')
             if cur_addr is not None:
@@ -655,7 +665,7 @@ for raw in lines:
         elif unwind_mode == 'log':
             out.append('nmi_poll("%s");' % _caller)
             out.append(_jsrcyc)
-            out.append('S = (uint8_t)(S - 2);')
+            for _l in _jsrpush: out.append(_l)
             out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s) fprintf(stderr, ' + chr(34) + 'UNWIND caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); }')
             out.append('S = (uint8_t)(S + 2);')
             if cur_addr is not None:
@@ -670,7 +680,7 @@ for raw in lines:
             _rec = ('uw_caller = "' + _caller + '"; uw_callee = "' + _callee + '"; ') if unwind_mode == 'resume' else ''
             out.append('nmi_poll("%s");' % _caller)
             out.append(_jsrcyc)
-            out.append('S = (uint8_t)(S - 2);')
+            for _l in _jsrpush: out.append(_l)
             if unwind_mode == 'resume':
                 fn_sites.append(len(out))
                 out.append('{ uint8_t _uw_s = S; ' + _callee + '(); if (S != _uw_s && !uw_abort) { uw_abort = 1; ' + _rec + 'fprintf(stderr, ' + chr(34) + 'UNWIND-ESCAPE caller=%s callee=%s S=%02X want=%02X' + chr(92) + 'n' + chr(34) + ', ' + chr(34) + _caller + chr(34) + ', ' + chr(34) + _callee + chr(34) + ', S, _uw_s); } if (uw_abort && !(uw_local_fn && uw_local_fn(uw_caller, uw_callee, "/*UW_NEXT*/"))) return; }')
