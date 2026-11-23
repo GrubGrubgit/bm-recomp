@@ -6,9 +6,9 @@ The 0.2.47 tweaks menu added area warp (bm_warp). Warps to area idx 4,6,7
 Headless warp matrix on production game.wasm reproduced all three.
 Deeper soaks (warp + 4000f synthetic play) exposed 12 more in the same
 family. All 15 were ByteTable gaps (da65 data) that are real game code on
-the area-5+ actor-load path. The TAS corpus never leaves areas 1-3, so the
+the area-5+ actor-load path. The full all-bosses TAS (110003f, all 8 areas) replayed green on the PRE-lift engine (FULL-110003 closed 2026-11-22), so natural transitions never dispatch these vectors; the table is dispatch-observed and warp-only dispatches were invisible to it, so the
 trace-driven vec007A table never observed them: coverage gap, not a
-lifter bug. Natural area-5+ entry hits the same vectors.
+lifter bug. Only bm_warp entry (jams ram[0x14], musttails into C2FB, skips transition setup, stale actor slots) selects them.
 
 ## Vectors (all bank6, guarded swbank==prg[6] cases)
 B494 (jmp B4A2 null), B497 (lda17 family), B91D (lda49/lsr/bcc fork),
@@ -33,7 +33,7 @@ wp_port5e.py (B575/B578/B57B/B20F), wp_port5f.py (B58E/B253), wp_port5g.py (B97A
 gcc -fsyntax-only -Wall -Wextra: off zero warnings; enf warnings are
 pre-existing (97 lines on HEAD too, none on the new functions).
 Warp matrix 8/8 clean (1700f each), gameplay soaks 4x4000f + 4x15000f
-(right/left/up/down/pause cycling) clean, full TAS movie-area13 replay
+(right/left/up/down/pause cycling) clean, full TAS movie-area13 (areas 1-3) replay
 120568f trap-free on the final engine (proves no area 1-3 regression).
-Areas 5-8 have no TAS oracle; soaks are the coverage. More ByteTable
+The all-bosses TAS (all 8 areas, natural entry) is green with and without these lifts, so it cannot observe warp-only vectors; for warp entry, soaks are the coverage. More ByteTable
 gap vectors may exist deeper in areas 5-8 (same whack-a-mole applies).
