@@ -1606,6 +1606,7 @@ static void b6_entry_B202(void);
 static void b6_entry_B20F(void);
 static void b6_entry_B253(void);
 static void b6_entry_B401(void);
+static void b6_entry_B4A3(void);
 static void b6_entry_B494(void);
 static void b6_entry_B497(void);
 static void b6_entry_B4A6(void);
@@ -1613,6 +1614,7 @@ static void b6_entry_B53D(void);
 static void b6_entry_B575(void);
 static void b6_entry_B578(void);
 static void b6_entry_B57B(void);
+static void b6_entry_B58B(void);
 static void b6_entry_B58E(void);
 static void b6_entry_B6E7(void);
 static void b6_entry_B6F7(void);
@@ -46752,6 +46754,8 @@ case 0xB20F: if (swbank == prg[6]) b6_entry_B20F(); else __builtin_trap(); break
 case 0xB58E: if (swbank == prg[6]) b6_entry_B58E(); else __builtin_trap(); break;
 case 0xB253: if (swbank == prg[6]) b6_entry_B253(); else __builtin_trap(); break;
 case 0xB97A: if (swbank == prg[6]) b6_entry_B97A(); else __builtin_trap(); break;
+case 0xB4A3: if (swbank == prg[6]) b6_entry_B4A3(); else __builtin_trap(); break;
+case 0xB58B: if (swbank == prg[6]) b6_entry_B58B(); else __builtin_trap(); break;
 case 0x90EB: if (swbank == prg[4]) b4_entry_90EB(); else __builtin_trap(); break;
 case 0x90EE: if (swbank == prg[4]) b4_entry_90EE(); else __builtin_trap(); break;
 case 0x911A: if (swbank == prg[4]) { cycles += 3; b4_entry_9137(); } else __builtin_trap(); break;
@@ -75687,6 +75691,7 @@ static void b6_entry_B202(void);
 static void b6_entry_B20F(void);
 static void b6_entry_B253(void);
 static void b6_entry_B401(void);
+static void b6_entry_B4A3(void);
 static void b6_entry_B457(void);
 static void b6_entry_B491(void);
 static void b6_entry_B494(void);
@@ -75699,6 +75704,7 @@ static void b6_entry_B557(void);
 static void b6_entry_B575(void);
 static void b6_entry_B578(void);
 static void b6_entry_B57B(void);
+static void b6_entry_B58B(void);
 static void b6_entry_B58E(void);
 static void b6_entry_B5FB(void);
 static void b6_entry_B62C(void);
@@ -103250,6 +103256,15 @@ return;
 nmi_pc = 0xB4A3;
 nmi_poll("b6_entry_B497");
 }
+static void __attribute__((used)) b6_entry_B4A3(void) {
+nmi_pc = 0xB4A3;
+nmi_poll("b6_entry_B4A3");
+nmi_poll("b6_entry_B4A3");
+cycles += 3;
+b6_entry_B508(); return;
+nmi_pc = 0xB4A6;
+nmi_poll("b6_entry_B4A3");
+}
 static void __attribute__((used)) b6_entry_B4A6(void) {
 nmi_pc = 0xB4A6;
 nmi_poll("b6_entry_B4A6");
@@ -103903,6 +103918,15 @@ cycles += 3;
 b7_entry_F011(); return;
 nmi_pc = 0xB578;
 nmi_poll("b6_LB56E");
+}
+static void __attribute__((used)) b6_entry_B58B(void) {
+nmi_pc = 0xB58B;
+nmi_poll("b6_entry_B58B");
+nmi_poll("b6_entry_B58B");
+cycles += 3;
+b6_entry_B5FB(); return;
+nmi_pc = 0xB58E;
+nmi_poll("b6_entry_B58B");
 }
 static void __attribute__((used)) b6_entry_B58E(void) {
 nmi_pc = 0xB58E;

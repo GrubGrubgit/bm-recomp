@@ -1710,6 +1710,7 @@ entry_B457 6
 entry_B491 6
 entry_B494 6
 entry_B497 6
+entry_B4A3 6
 entry_B4A6 6
 entry_B4DD 6
 entry_B508 6
@@ -1718,6 +1719,7 @@ entry_B557 6
 entry_B575 6
 entry_B578 6
 entry_B57B 6
+entry_B58B 6
 entry_B58E 6
 entry_B5FB 6
 entry_B62C 6
