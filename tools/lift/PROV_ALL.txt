@@ -1760,6 +1760,7 @@ entry_B8E7 6
 entry_B8EF 6
 entry_B91D 6
 entry_B935 6
+entry_B97A 6
 entry_B97D 6
 entry_B965 6
 entry_B9C0 6
