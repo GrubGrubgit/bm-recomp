@@ -1,0 +1,24 @@
+entry_B91D:
+        lda     $49
+        lsr     a
+        bcc     LB92D
+        lda     #$A0
+        sta     $50
+        lda     #$A0
+        sta     $47
+        jmp     entry_B935
+LB92D:  lda     #$60
+        sta     $50
+        lda     #$E0
+        sta     $47
+entry_B935:
+        ldy     #$18
+        jsr     LE1BD
+        lda     #$00
+        sta     $51
+        sta     $52
+        lda     #$1C
+        jsr     entry_A2E9
+        lda     #$8E
+        sta     $46
+        rts

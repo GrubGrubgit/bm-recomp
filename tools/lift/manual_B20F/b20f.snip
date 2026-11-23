@@ -1,0 +1,31 @@
+entry_B20F:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        jsr     entry_EF2B
+        bne     entry_B23F
+        lda     $11
+        and     #$1F
+        bne     entry_B23F
+        jsr     entry_EB71
+        and     #$60
+        bne     entry_B23F
+        lda     #$28
+        jsr     entry_A29E
+        beq     entry_B23F
+        lda     #$7C
+        sta     $0400,x
+        lda     #$00
+        sta     $0407,x
+        lda     #$24
+        jsr     entry_DECC
+entry_B23F:
+        lda     #$10
+        sta     $40
+        lda     #$10
+        sta     $41
+        jsr     entry_EF2B
+        beq     LB24F
+        jmp     entry_D7F8
+LB24F:  rts

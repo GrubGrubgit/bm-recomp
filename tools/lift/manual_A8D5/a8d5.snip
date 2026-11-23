@@ -1,0 +1,20 @@
+entry_A8D5:
+        lda     #$06
+        jsr     entry_A2E9
+        lda     #$01
+        sta     $50
+        lda     #$00
+        sta     $4D
+        lda     #$11
+        sta     $4C
+        jsr     LE0ED
+        bpl     LA8F2
+        lda     #$00
+        sec
+        sbc     $4C
+        sta     $4C
+LA8F2:  lda     #$00
+        sta     $51
+        sta     $47
+        sta     $52
+        rts

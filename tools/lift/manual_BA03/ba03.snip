@@ -1,0 +1,31 @@
+entry_BA03:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        lda     $51
+        beq     LBA19
+        lda     #$43
+        jsr     entry_DECC
+        dec     $51
+        jmp     entry_BA43
+LBA19:  jsr     entry_E083
+        beq     entry_BA43
+        jsr     entry_EB71
+        and     #$40
+        beq     LBA2C
+        lda     #$60
+        ldx     #$60
+        jmp     LBA30
+LBA2C:  lda     #$A0
+        ldx     #$A0
+LBA30:  clc
+        adc     $47
+        sta     $47
+        stx     $50
+        ldy     #$18
+        jsr     entry_E1BD
+        lda     #$00
+        sta     $51
+        dec     $46
+        rts

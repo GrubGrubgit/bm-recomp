@@ -1,0 +1,72 @@
+entry_B4A6:
+        lda     #$80
+        sta     $42
+        lda     #$40
+        sta     $43
+        jsr     entry_E120
+        ldx     #$02
+        jsr     entry_E06A
+        sta     $4D
+        lda     #$0A
+        ldx     #$4D
+        jsr     entry_EB14
+        jsr     entry_E107
+        pha
+        ldx     #$02
+        jsr     entry_E06A
+        sta     $4C
+        pla
+        bpl     LB4D2
+        eor     #$FF
+        clc
+        adc     #$01
+LB4D2:  cmp     #$40
+        bcs     LB4DB
+        lda     #$01
+        jmp     LB4DD
+LB4DB:  lda     #$0A
+LB4DD:  ldx     #$4C
+        jsr     entry_EB14
+        jsr     entry_E0FA
+        bne     LB4EE
+        lda     #$3C
+        sta     $A0
+        jsr     entry_DF36
+LB4EE:  lda     $11
+        asl     a
+        asl     a
+        asl     a
+        asl     a
+        ldy     #$0C
+        jsr     entry_E1D5
+        jsr     entry_E196
+        clc
+        adc     $4D
+        sta     $4D
+        jsr     entry_DF68
+        jsr     entry_A2D4
+entry_B508:
+        lda     #$10
+        sta     $40
+        lda     #$08
+        sta     $41
+        jsr     entry_EF2B
+        beq     LB518
+        jmp     entry_D804
+LB518:  lda     #$17
+        jsr     entry_A30A
+        beq     LB529
+        inc     $46
+        lda     #$40
+        sta     $51
+        lda     #$00
+        sta     $4D
+LB529:  lda     #$01
+        jsr     entry_E04E
+        lda     $11
+        lsr     a
+        lsr     a
+        and     #$01
+        clc
+        adc     #$9F
+        jmp     entry_F011

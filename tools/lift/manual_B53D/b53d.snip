@@ -1,0 +1,27 @@
+entry_B53D:
+        lda     #$80
+        sta     $42
+        lda     #$40
+        sta     $43
+        dec     $51
+        lda     $11
+        and     #$01
+        bne     LB557
+        lda     #$01
+        ldx     #$00
+        jsr     entry_DFD1
+        jsr     entry_E083
+LB557:  lda     #$10
+        sta     $40
+        lda     #$08
+        sta     $41
+        jsr     entry_EF2B
+        beq     LB567
+        jmp     entry_D804
+LB567:  lda     $51
+        bne     LB56E
+        jmp     entry_A34D
+LB56E:  lda     #$01
+        jsr     entry_E04E
+        lda     #$A1
+        jmp     entry_F011

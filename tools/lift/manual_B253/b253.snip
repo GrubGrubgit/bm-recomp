@@ -1,0 +1,33 @@
+entry_B253:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        lda     $11
+        asl     a
+        asl     a
+        ldy     #$28
+        jsr     entry_E1D5
+        jsr     entry_E196
+        sta     $4D
+        jsr     entry_D2DB
+entry_B26C:
+        lda     #$10
+        sta     $40
+        lda     #$10
+        sta     $41
+        jsr     entry_EF2B
+        beq     LB27C
+        jmp     entry_D81C
+LB27C:  lda     #$13
+        jsr     entry_A30A
+        beq     LB286
+        jmp     entry_A347
+LB286:  lda     #$00
+        jsr     entry_E04E
+        lda     $11
+        lsr     a
+        and     #$03
+        tax
+        lda     LB297,x
+        jmp     entry_F011

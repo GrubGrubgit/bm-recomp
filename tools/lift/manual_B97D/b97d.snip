@@ -1,0 +1,66 @@
+entry_B97D:
+        lda     #$80
+        sta     $42
+        lda     #$80
+        sta     $43
+        ldy     #$18
+        jsr     entry_A670
+        jsr     entry_E107
+        and     #$FC
+        bne     LB998
+        jsr     entry_E0FA
+        beq     entry_B9C0
+        bne     LB9A4
+LB998:  jsr     entry_E120
+        and     #$FC
+        bne     entry_B9C0
+        jsr     entry_E0ED
+        beq     entry_B9C0
+LB9A4:  lda     $50
+        clc
+        adc     $47
+        sta     $01
+        jsr     entry_A634
+        cpx     $01
+        bne     entry_B9C0
+        stx     $47
+        ldy     #$60
+        jsr     entry_E1BD
+        lda     #$10
+        sta     $51
+        inc     $46
+        rts
+entry_B9C0:
+        lda     #$10
+        sta     $40
+        lda     #$10
+        sta     $41
+        jsr     entry_EF2B
+        beq     LB9D0
+        jmp     entry_D7F8
+LB9D0:  lda     #$1C
+        jsr     entry_A30A
+        beq     LB9DA
+        jmp     entry_A34D
+LB9DA:  lda     $50
+        and     #$80
+        sta     $00
+        lda     $47
+        sec
+        sbc     #$20
+        lsr     a
+        ora     $00
+        lsr     a
+        lsr     a
+        lsr     a
+        lsr     a
+        tax
+        lda     LBA70,x
+        sta     $44
+        lda     $11
+        lsr     a
+        lsr     a
+        lsr     a
+        and     #$01
+        ora     LBA71,x
+        jmp     entry_F011
