@@ -16,7 +16,7 @@ B4A6 (long init, falls into B508), A8D5 (lda06 family), B97D (forked init,
 falls into B9C0), BA03 (lda80 fork), B53D (forked init), B202 (lda13 leaf),
 B58E (forked init, falls into B5FB), B57B (lda18 family), B575 (jmp F011),
 B578 (jmp B58A null), B20F (forked init, falls into B23F), B253 (forked
-init, falls into B26C), B97A (jmp-B9C0 trampoline), B4A3 (jmp-B508 trampoline), B58B (jmp-B5FB trampoline). Fallthroughs transcribed as second entries (exact,
+init, falls into B26C), B97A (jmp-B9C0 trampoline), B4A3 (jmp-B508 trampoline), B58B (jmp-B5FB trampoline), B2EC (jmp-B308 trampoline, type-125 direct path; +3 twin B2EF pre-existing). Fallthroughs transcribed as second entries (exact,
 zero-cycle); same-bank external JMPs via stub slot; all JSR targets
 pre-existing (xresolve verified, one each in ADDRMAP).
 
@@ -27,7 +27,7 @@ fallthrough target body), switch, ADDRMAP, PROV_ALL, vec007A 6-line.
 Splice scripts wp_port5.py (B494/B497/B91D/A8D5), wp_port5b.py
 (B4A6/B97D), wp_port5c.py (BA03), wp_port5d.py + wp_port5d_fix.py
 (B202/B53D; enf block2 lacks B3FE so its B202 decl went block1-only),
-wp_port5e.py (B575/B578/B57B/B20F), wp_port5f.py (B58E/B253), wp_port5g.py (B97A), wp_port5h.py (B4A3), wp_port5i.py (B58B).
+wp_port5e.py (B575/B578/B57B/B20F), wp_port5f.py (B58E/B253), wp_port5g.py (B97A), wp_port5h.py (B4A3), wp_port5i.py (B58B), wp_b2ec.py (B2EC).
 
 ## Verify
 gcc -fsyntax-only -Wall -Wextra: off zero warnings; enf warnings are

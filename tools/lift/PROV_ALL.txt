@@ -1695,6 +1695,7 @@ entry_B2B6 6
 entry_B2C1 6
 entry_B2CA 6
 entry_B2DB 6
+entry_B2EC 6
 entry_B2EF 6
 entry_B300 6
 entry_B303 6
